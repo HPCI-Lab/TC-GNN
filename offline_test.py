@@ -2,7 +2,10 @@ import xarray as xr
 import numpy as np
 import matplotlib.pyplot as plt
 
+# Both datasets are AWI-ESM, low resolution historical
+# variable_id: tos; ocean surface temperature
 data_small = xr.open_dataset("./data/tos_Omon_AWI-ESM-1-1-LR_historical_r1i1p1f1_gn_185001-185012.nc")
+# variable_id: thetao; ocean potential temperature
 data_big = xr.open_dataset("./data/thetao_Omon_AWI-ESM-1-1-LR_historical_r1i1p1f1_gn_185001-185012.nc")
 
 # <class 'xarray.core.dataset.DataSet'>
@@ -60,4 +63,5 @@ step = 1
 plt.figure(figsize=(20, 10))
 plt.scatter(model_lon[region_mask][::step], model_lat[region_mask][::step], s=30, c=data_sample[region_mask][::step])
 plt.colorbar(orientation='horizontal', pad=0.04)
-plt.show()
+#plt.show()
+plt.savefig('section.png')
