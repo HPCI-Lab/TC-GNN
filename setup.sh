@@ -8,4 +8,5 @@ pip install --upgrade pip
 pip install xarray
 pip install netcdf4
 pip install matplotlib
+pip install dask
 
