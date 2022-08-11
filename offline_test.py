@@ -10,7 +10,6 @@ data_big = xr.open_dataset("./data/thetao_Omon_AWI-ESM-1-1-LR_historical_r1i1p1f
 
 # <class 'xarray.core.dataset.DataSet'>
 print(data_small)
-#print(data_big)
 
 # Returns the Dataset size
 print(data_small.dims)
