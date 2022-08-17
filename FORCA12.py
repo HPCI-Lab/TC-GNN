@@ -2,7 +2,7 @@ import xarray as xr
 import matplotlib.pyplot as plt
 
 PATHS = []
-with open('path_hdd.ini', 'r') as file:
+with open('paths.ini', 'r') as file:
     for line in file:
         PATHS.append(line.strip())
 
@@ -47,3 +47,14 @@ plt.scatter(model_lon[region_mask][::step], model_lat[region_mask][::step], s=1,
 cbar = plt.colorbar(orientation='horizontal', pad=0.05)
 cbar.set_label(data_ssh.data_vars['ssh'].description)
 plt.savefig('mediterranean_FORCA12.png')
+
+# Extraction of a series of depths from the unod file and mesh
+model_depth = data_mesh.nz1.values          # could also retrieve from the unod file itself
+
+top = 0
+bottom = -50       # negative since it's below the sea level
+depth_mask = (model_depth > bottom) & (model_depth < top)
+
+data_sample = data_unod.unod[0][depth_mask][0]  # the last index is used to select one of the depth levels that
+                                                # the depth_mask identified
+
