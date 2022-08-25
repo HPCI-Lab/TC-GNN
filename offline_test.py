@@ -46,10 +46,10 @@ model_lon = data_small.lon.values
 model_lat = data_small.lat.values
 data_sample = data_small.tos[0,:].values
 
-#plt.figure(figsize=(20, 10))
-#plt.scatter(model_lon, model_lat, s=1, c=data_sample)
-#plt.colorbar(orientation='horizontal', pad=0.04)
-#plt.show()
+plt.figure(figsize=(20, 10))
+plt.scatter(model_lon, model_lat, s=1, c=data_sample)
+plt.colorbar(orientation='horizontal', pad=0.04)
+plt.show()
 #plt.savefig('world_fesom.png')
 
 # Now, cut a smaller region, say, the Barbados
@@ -60,10 +60,10 @@ top = 26
 region_mask = (model_lon > left) & (model_lon < right) & (model_lat < top) & (model_lat > bottom)
 
 step = 1
-#plt.figure(figsize=(20, 10))
-#plt.scatter(model_lon[region_mask][::step], model_lat[region_mask][::step], s=30, c=data_sample[region_mask][::step])
-#plt.colorbar(orientation='horizontal', pad=0.04)
-#plt.show()
+plt.figure(figsize=(20, 10))
+plt.scatter(model_lon[region_mask][::step], model_lat[region_mask][::step], s=30, c=data_sample[region_mask][::step])
+plt.colorbar(orientation='horizontal', pad=0.04)
+plt.show()
 #plt.savefig('barbados_fesom.png')
 
 
