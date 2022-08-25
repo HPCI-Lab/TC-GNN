@@ -1,4 +1,3 @@
-from pyexpat import model
 import xarray as xr
 import numpy as np
 import matplotlib.pyplot as plt
@@ -35,21 +34,26 @@ data_sample[elements[0]]
 # And the mean value for the triangle would be:
 data_sample[elements[0]].mean()
 
+# In a matrix, axis=0 is the vertical while axis=1 is the horizontal
+d = model_lon[elements].max(axis=1) - model_lon[elements].min(axis=1)
 
-d = model_lon[elements].max(axis=1) - model_lon[elements].min(axis=1)       # BROKEN - NEED 'elements'
-no_cyclic_elem = np.argwhere(d < 100).ravel()                               # BROKEN - NEED 'd'
-triang = mtri.Triangulation(model_lon, model_lat, elements[no_cyclic_elem]) # BROKEN - NEED 'elements' and 'no_cyclic_elem'
+# argwhere finds the indices of non-zero values and ravel() puts it in 1D form
+no_cyclic_elem = np.argwhere(d < 100).ravel()
 
+# Create a matplotlib triangulation based of only non cyclic triangles
+triang = mtri.Triangulation(model_lon, model_lat, elements[no_cyclic_elem])
 
-##### Deeper levels of FESOM data - ALL BROKEN DOWN HERE
+# RUN IT ON THE CLUSTER, AS IT TAKES A LOT OF TIME AND RAM
+interpolation = mtri.LinearTriInterpolator(triang, data_sample)
 
-# Taking the first date value and the 3150m depth data
-data_at_3150_m = dataset.thetao[0, 34].values
+# Let's save the unstructured and interpolated grid in pictures
+plt.figure(figsize=(20, 10))
+plt.scatter(model_lon[::20], model_lat[::20], s=1, c=data_sample[::20])
+plt.imshow()
+plt.savefig('unstructured.png')
 
-# Data not available at 3150m is signed as 'nan'
-data_at_3150_m
+##### Let's try something different
 
-### Naive approach - interpolating considering all triangles:
-bad_interpolation = mtri.LinearTriInterpolator
+# Taking the first date value ssh data
+#data_at_20100101 = data_ssh.ssh[0].values
 
-### Better approach - tell matplotlib to ignore the triangles with 'nan' values
