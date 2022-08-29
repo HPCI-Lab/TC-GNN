@@ -78,3 +78,31 @@ cbar = plt.colorbar(orientation='horizontal', pad=0.04)
 cbar.set_label(data_big.data_vars['thetao'].standard_name)
 plt.show()
 #plt.savefig('world_fesom.png')
+
+##### Xarray methods
+
+# label-based indexing like Pandas, very fast
+lat = data_small.lat
+lon = data_small.lon
+lon_region = lon.loc[(left < lon) & (lon < right)].values
+lat_region = lat.loc[(bottom < lat) & (lat < top)].values
+
+plt.figure(figsize=(20, 10))
+plt.scatter(lon_region, lat_region, s=30)
+plt.show()
+
+# This actually works
+data_small.sel(time='1850-01-16T12:00:00', method='nearest')
+
+# rioxarray trial at clipping a box of lon and lat with the mesh data
+tmp = tmp.set_coords(['lat', 'lon'])
+tmp = tmp.expand_dims({'x': tmp.nod2.size})
+tmp = tmp.rename_dims({'nod2': 'y'})
+
+tmp = tmp.rename({'lon': 'x', 'lat': 'y'})
+
+tmp.sel(lat=slice(bottom, top), lon=slice(left, right))
+
+mask_lon = (tmp.lon >= left) & (tmp.lon <= right)
+mask_lat = (tmp.lat >= bottom) & (tmp.lat <= top)
+tmp = tmp.where(mask_lon & mask_lat, drop=True)     # I think this has some seriuos memory allocation
