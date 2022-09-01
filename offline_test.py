@@ -92,10 +92,11 @@ plt.scatter(lon_region, lat_region, s=30)
 plt.show()
 
 
-# Refactoring of some parts of the dataset, to be ultimately used to clip a box of lon and lat
-# with the mesh data, using the rioxarray libray
+## Collection of refactoring methods of the dataset; these should ultimately be used to clip a box of lon and lat with the mesh data, using the rioxarray libray
+
 tmp = tmp.set_coords(['lat', 'lon'])
-# Adds the new dimensions to all data variables
+
+# Adds the new dimensions to all data variables -> DON'T USE IT
 tmp = tmp.expand_dims({'x': tmp.nod2.size})
 tmp = tmp.rename_dims({'nod2': 'y'})
 
@@ -105,4 +106,6 @@ tmp.sel(lat=slice(bottom, top), lon=slice(left, right))
 
 mask_lon = (tmp.lon >= left) & (tmp.lon <= right)
 mask_lat = (tmp.lat >= bottom) & (tmp.lat <= top)
-tmp = tmp.where(mask_lon & mask_lat, drop=True)     # I think this has some seriuos memory allocation
+tmp = tmp.where(mask_lon & mask_lat, drop=True)     # I think this has some serious memory allocation
+
+tmp.swap_dims({'nod2': 'nod2_sub'})
