@@ -91,11 +91,11 @@ plt.figure(figsize=(20, 10))
 plt.scatter(lon_region, lat_region, s=30)
 plt.show()
 
-# This actually works
-data_small.sel(time='1850-01-16T12:00:00', method='nearest')
 
-# rioxarray trial at clipping a box of lon and lat with the mesh data
+# Refactoring of some parts of the dataset, to be ultimately used to clip a box of lon and lat
+# with the mesh data, using the rioxarray libray
 tmp = tmp.set_coords(['lat', 'lon'])
+# Adds the new dimensions to all data variables
 tmp = tmp.expand_dims({'x': tmp.nod2.size})
 tmp = tmp.rename_dims({'nod2': 'y'})
 
