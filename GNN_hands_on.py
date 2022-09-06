@@ -1,8 +1,11 @@
 import torch
 from torch_geometric.data import Data
+from torch_geometric.loader import DataLoader
+import Dataset
 
 ### Example code for the creation of a Graph Neural Network
-# The graph is composed by 4 nodes, and each one is associated with a 2-dimensional feature vector, and a label y indicating its class
+
+## Data - The graph is composed by 4 nodes, and each one is associated with a 2-dimensional feature vector, and a label y indicating its class
 
 # These are the feature vectors
 x = torch.tensor([[2,1], [5,6], [3,7], [12,0]], dtype=torch.float)
@@ -19,3 +22,11 @@ edge_index = torch.tensor([[0, 1, 2, 0, 3],                             # source
 data = Data(x=x, y=y, edge_index=edge_index)
 
 print(data)
+dataset = Dataset.MyOwnDataset
+
+
+## DataLoader - allows to feed data by batch into the model. The "batch" information is used by the GNN model to tell which nodes belong to which graph
+loader = DataLoader(dataset, batch_size=512, shuffle=True)      # IT BREAKS HERE
+
+for batch in loader:
+    batch
