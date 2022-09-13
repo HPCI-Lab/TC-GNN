@@ -1,14 +1,9 @@
 import xarray as xr
 import numpy as np
 import matplotlib.pyplot as plt
-import time_func as tm 
+import time_func as tm
 
-PATHS = []
-with open('paths.ini', 'r') as file:
-    for line in file:
-        PATHS.append(line.strip())
-
-inputs_list = [PATHS[4]]  # Useful when input data is stored in multiple files
+inputs_list = ['./data/tos_Omon_AWI-ESM-1-1-LR_historical_r1i1p1f1_gn_185001-185012.nc']  # Useful when input data is stored in multiple files
 horizontal_split = 100000
 vertical_split = 1
 time_split = 100
