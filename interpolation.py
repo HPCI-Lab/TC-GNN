@@ -49,11 +49,10 @@ interpolation = mtri.LinearTriInterpolator(triang, data_sample)
 # Let's save the unstructured and interpolated grid in pictures
 plt.figure(figsize=(20, 10))
 plt.scatter(model_lon[::20], model_lat[::20], s=1, c=data_sample[::20])
-plt.imshow()
+plt.show()
 plt.savefig('unstructured.png')
 
 ##### Let's try something different
 
 # Taking the first date value ssh data
 #data_at_20100101 = data_ssh.ssh[0].values
-
