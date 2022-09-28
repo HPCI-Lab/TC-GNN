@@ -22,8 +22,7 @@ edge_index = torch.tensor([[0, 1, 2, 0, 3],                             # source
 data = Data(x=x, y=y, edge_index=edge_index)
 
 print(data)
-dataset = Dataset.MyOwnDataset
-
+dataset = Dataset.PilotDataset('../data/pilot/')    # It will automatically search for processed/ and raw/ in here, creating the folders if not found
 
 ## DataLoader - allows to feed data by batch into the model. The "batch" information is used by the GNN model to tell which nodes belong to which graph
 loader = DataLoader(dataset, batch_size=512, shuffle=True)      # IT BREAKS HERE
