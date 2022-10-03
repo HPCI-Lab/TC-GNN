@@ -1,7 +1,14 @@
 import xarray as xr
 
+PATH = ''
+
 mesh_data = xr.open_dataset('../data/fesom.mesh.diag.nc')
 data_ssh = xr.open_dataset('../data/ssh.fesom.2010.nc')
+data_unod = xr.open_dataset(PATH + 'unod.fesom.2010.nc', engine='netcdf4')
+data_vnod = xr.open_dataset(PATH + 'vnod.fesom.2010.nc', engine='netcdf4')
+
+
+### Process the mesh file ###
 
 # Extracting longitude and latitude values of the mesh
 model_lon = mesh_data.lon.values
@@ -58,5 +65,20 @@ for v1, v2, v3 in elements:
 
 mesh_data = mesh_data.drop_vars('elements')
 mesh_data['elements'] = (('elem_subset', 'nz3'), elements[elem_mask])
+#mesh_data.to_netcdf('./pilot_mesh.nc', engine='netcdf4') # The orignal mesh is 8.5GB, this is 3M
 
-#mesh_data.to_netcdf('./pilot_data.nc', engine='netcdf4') # The orignal mesh is 8.5GB, this is 3M
+
+### Process the data files ###
+
+data_ssh = data_ssh.sel(time='2010-01-01T00:00:00', method='nearest')
+data_unod = data_unod.sel(nz1=0.0, method='nearest')
+data_unod = data_unod.sel(time='2010-01-01T00:00:00', method='nearest')
+data_vnod = data_vnod.sel(nz1=0.0, method='nearest')
+data_vnod = data_vnod.sel(time='2010-01-01T00:00:00', method='nearest')
+
+data = data_ssh.ssh
+#data.to_netcdf('./pilot_ssh.nc', engine='netcdf4')
+data = data_unod.unod
+#data.to_netcdf('./pilot_unod.nc', engine='netcdf4')
+data = data_vnod.vnod
+#data.to_netcdf('./pilot_vnod.nc', engine='netcdf4')
