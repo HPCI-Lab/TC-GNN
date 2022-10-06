@@ -14,22 +14,25 @@ data_vnod = xr.open_dataset(PATH + 'vnod.fesom.2010.nc', engine='netcdf4')
 model_lon = mesh_data.lon.values
 model_lat = mesh_data.lat.values
 
-# The area we're gonna keep is the Mediterranean sea
+# Spatial subset of the Mediterranean sea, but to use it you'll need to fix bug #1
 left = -10
 right = 40
 bottom = 30
 top = 47
 region_mask = (model_lon > left) & (model_lon < right) & (model_lat < top) & (model_lat > bottom)
 
+# We'll use the first 100000 values of longitude and latitude to avoid the problems related to bug #1
+subset = 100000
+
 # Changing the lon and lat values in the dataset
 mesh_data = mesh_data.drop_vars('lon')
 mesh_data = mesh_data.drop_vars('lat')
-mesh_data = mesh_data.assign_coords(lon=('spatial_subset', model_lon[region_mask])) # could also be 'nodes_subset'
-mesh_data = mesh_data.assign_coords(lat=('spatial_subset', model_lat[region_mask]))
+mesh_data = mesh_data.assign_coords(lon=('spatial_subset', model_lon[:subset])) # could also be 'nodes_subset'
+mesh_data = mesh_data.assign_coords(lat=('spatial_subset', model_lat[:subset]))
 
-# Taking just the surface depth value, dropping the useless values
-mesh_data = mesh_data.drop_vars('nz1')
-mesh_data = mesh_data.sel(nz=0.0, method='nearest')
+# Taking just the "surface" middle level depth, dropping the depth levels
+mesh_data = mesh_data.drop_vars('nz')
+mesh_data = mesh_data.sel(nz1=0.0, method='nearest')
 
 mesh_data = mesh_data.drop_vars('edge_cross_dxdy')
 mesh_data = mesh_data.drop_vars('edge_tri')
@@ -54,18 +57,17 @@ elem_mask = []
 
 # Removing the triangles that have at least a vertex missing from the spatial subset
 for v1, v2, v3 in elements:
-    res = (region_mask[v1] & region_mask[v2] & region_mask[v3])
-    if res:
-        elem_mask.append(True)
-    else:
-        elem_mask.append(False)
+    #res = (region_mask[v1] & region_mask[v2] & region_mask[v3])    # bug #1
+    res = (v1 < subset) & (v2 < subset) & (v3 < subset)
+    elem_mask.append(res)   # append True or False depending on the triangle vertices
+
     # TODO: filter also the edge data if the edge data ends up being useful
 
 
 
 mesh_data = mesh_data.drop_vars('elements')
 mesh_data['elements'] = (('elem_subset', 'nz3'), elements[elem_mask])
-#mesh_data.to_netcdf('./pilot_mesh.nc', engine='netcdf4') # The orignal mesh is 8.5GB, this is 3M
+#mesh_data.to_netcdf('./pilot_mesh.nc', engine='netcdf4') # The orignal mesh is 8.5GB, this is 3.9MB
 
 
 ### Process the data files ###
