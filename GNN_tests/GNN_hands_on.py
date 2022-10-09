@@ -1,7 +1,12 @@
 import torch
+import torch_geometric
 from torch_geometric.data import Data
 from torch_geometric.loader import DataLoader
 import Dataset
+
+print(f"Torch version: {torch.__version__}")
+print(f"Cuda available: {torch.cuda.is_available()}")
+print(f"Torch geometric version: {torch_geometric.__version__}")
 
 ### Example code for the creation of a Graph Neural Network
 
@@ -27,5 +32,6 @@ dataset = Dataset.PilotDataset('../data/pilot/')    # It will automatically sear
 ## DataLoader - allows to feed data by batch into the model. The "batch" information is used by the GNN model to tell which nodes belong to which graph
 loader = DataLoader(dataset, batch_size=512, shuffle=True)      # IT BREAKS HERE
 
+print("printing batches...")
 for batch in loader:
     batch
