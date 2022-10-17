@@ -36,7 +36,6 @@ mesh_data = mesh_data.sel(nz1=0.0, method='nearest')
 
 mesh_data = mesh_data.drop_vars('edge_cross_dxdy')
 mesh_data = mesh_data.drop_vars('edge_tri')
-mesh_data = mesh_data.drop_vars('edges')
 mesh_data = mesh_data.drop_vars('elem_area')
 mesh_data = mesh_data.drop_vars('elem_part')
 mesh_data = mesh_data.drop_vars('gradient_sca_x')
@@ -51,6 +50,8 @@ mesh_data = mesh_data.drop_vars('nodes')
 mesh_data = mesh_data.drop_vars('zbar_e_bottom')
 mesh_data = mesh_data.drop_vars('zbar_n_bottom')
 
+### ELEMENTS PROCESSING ###
+"""
 # Each row in the following variable is a triangle, and each value in the row is the index of a vertex
 elements = (mesh_data.elements.data.astype('int32') - 1).T
 elem_mask = []
@@ -61,12 +62,24 @@ for v1, v2, v3 in elements:
     res = (v1 < subset) & (v2 < subset) & (v3 < subset)
     elem_mask.append(res)   # append True or False depending on the triangle vertices
 
-    # TODO: filter also the edge data if the edge data ends up being useful
-
-
-
 mesh_data = mesh_data.drop_vars('elements')
-mesh_data['elements'] = (('elem_subset', 'nz3'), elements[elem_mask])
+mesh_data['elements'] = (('elem_subset', 'n3'), elements[elem_mask])
+"""
+
+### EDGES PROCESSING ###
+
+edges = (mesh_data.edges.data.astype('int32') - 1).T
+edges_mask = []
+
+# Removing edges outside of the subset
+for start, end in edges:
+    res = (start < subset) & (end < subset)
+    edges_mask.append(res)
+
+mesh_data = mesh_data.drop_vars('edges')
+mesh_data['edges'] = (('edge_subset', 'n2'), edges[edges_mask])
+
+# Write the pilot mesh to the filesystem
 #mesh_data.to_netcdf('./pilot_mesh.nc', engine='netcdf4') # The orignal mesh is 8.5GB, this is 3.9MB
 
 
