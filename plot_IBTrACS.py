@@ -1,8 +1,9 @@
-import xarray as xr
-import matplotlib.pyplot as plt
 import geopandas as gpd  # geopandas for earth contours
+import matplotlib.pyplot as plt
+import numpy as np
+import xarray as xr
 
-data = xr.open_dataset('./data/IBTrACS.ALL.v04r00.nc')
+data = xr.open_dataset('./data/IBTrACS.since1980.v04r00.nc')
 countries = gpd.read_file(gpd.datasets.get_path('naturalearth_lowres'))
 
 fig, ax = plt.subplots(figsize=(20, 10))
@@ -58,3 +59,13 @@ for i in range(13664):
             not_NaN += 1
     not_NaN = not_NaN/360*100
     print(i, f"full of data at {not_NaN}%")
+
+
+# Histogram plot of the amount of cyclones recordings per season
+bins = np.unique(seasons)
+counts, edges, bars = plt.hist(seasons, bins=bins, edgecolor='black')
+plt.xlabel("Years", labelpad=12, fontsize=14)
+plt.ylabel("Cyclones per year", labelpad=12, fontsize=14)
+plt.xticks(bins, rotation=50)
+plt.bar_label(bars)
+plt.show()
