@@ -12,11 +12,14 @@ fig, ax = plt.subplots(figsize=(20, 10))
 #countries.plot(color='grey', ax=ax)
 
 # Plot single continents/countries
-countries[countries["continent"] == "Asia"].plot(color='grey', ax=ax)
-#countries[countries["name"] == "India"].plot(color='grey', ax=ax)
-#countries[countries["continent"] == "Africa"].plot(color='grey', ax=ax)
+#countries[countries["continent"] == "Asia"].plot(color='grey', ax=ax)
+countries[countries["name"] == "Australia"].plot(color='grey', ax=ax)
 
-plt.scatter(data.lon[0].values, data.lat[0].values)
+st = 235
+data_sample = data.wmo_wind #pres
+plt.scatter(data.lon[st].values, data.lat[st].values, s=20, c=data_sample[st].values)    # TODO if a value is NaN, it's not gonna be plotted
+cbar = plt.colorbar(orientation='horizontal', pad=0.04)
+cbar.set_label(data_sample.long_name, labelpad=10)
 plt.show()
 
 # Evaluation of some variables
@@ -50,18 +53,24 @@ wmo_wind = data.wmo_wind                # Maximum sustained wind speed(kts)
 wmo_pres = data.wmo_pres                # Minimum central pressure(mb)
 
 
-# Check the % of non-NaN data in the maximum sustained wind speed variable
-for i in range(13664):
+# Check the % of non-NaN data in the maximum sustained wind speed variable, and find the highest
+highest = 0
+for i in range(data.storm.size):
     not_NaN = 0
     values = data.wmo_wind[i].values
-    for j in range(360):
+    for j in range(data.date_time.size):
         if values[j] == values[j]:    # NaN objects shapeshift, they are different from themselves
             not_NaN += 1
     not_NaN = not_NaN/360*100
-    print(i, f"full of data at {not_NaN}%")
+
+    if values[highest] < not_NaN:
+        highest = i
+
+    print(i, f"data full at {not_NaN}%")
 
 
 # Histogram plot of the amount of cyclones recordings per season
+seasons = data.season.values
 bins = np.unique(seasons)
 counts, edges, bars = plt.hist(seasons, bins=bins, edgecolor='black')
 plt.xlabel("Years", labelpad=12, fontsize=14)
