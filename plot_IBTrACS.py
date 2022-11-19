@@ -22,7 +22,7 @@ cbar = plt.colorbar(orientation='horizontal', pad=0.04)
 cbar.set_label(data_sample.long_name, labelpad=10)
 plt.show()
 
-# Evaluation of some variables
+# Variables
 data = data.drop_vars('numobs')         # no of observations
 data = data.drop_vars('sid')            # serial id
 data = data.drop_vars('season')         # season when storm started
@@ -65,24 +65,141 @@ data = data.drop_vars('usa_poci')       # pressure of outermost closed isobar(no
 data = data.drop_vars('usa_roci')       # as usa_poci, but the valid_min and valid_max are different. As above, doesn't follow the usa_pres trends
 data = data.drop_vars('usa_rmw')        # radius of maximum winds (not best tracked)
 data = data.drop_vars('usa_eye')        # eye diameter (not best tracked)
+data = data.drop_vars('usa_gust')       # maximum reported wind gust from a US agency
+data = data.drop_vars('usa_seahgt')     # wave height for given radii(ft)
+data = data.drop_vars('usa_searad')     # radial extent of given sea height(nmile)
 
 # Tokyo-specific data
 data = data.drop_vars('tokyo_lat')      # just lat, seems unnecessary
 data = data.drop_vars('tokyo_lon')      # as above
 data = data.drop_vars('tokyo_grade')    # storm grade from 2 to 9
-data = data.drop_vars('')
-data = data.drop_vars('')
+data = data.drop_vars('tokyo_r50_dir')  # direction of maximum radius of 50 knots winds, all cardinal points combinations
+data = data.drop_vars('tokyo_r50_long') # maximum radius of 50 knots winds
+data = data.drop_vars('tokyo_r50_short')# minimum radius of 50 knots winds
+data = data.drop_vars('tokyo_r30_dir')  # direction of maximum radius of 50 knots winds
+data = data.drop_vars('tokyo_r30_long') # maximum radius of 30 knots winds
+data = data.drop_vars('tokyo_r30_short')# minimum radius of 30 knots winds
+data = data.drop_vars('tokyo_land')     # landfall flag(0 or 1)
+
+# Chinese-specific data
+data = data.drop_vars('cma_lat')
+data = data.drop_vars('cma_lon')
+data = data.drop_vars('cma_cat')        # storm category(from 0 to 9)
+
+# Hong-Kong-specific data
+data = data.drop_vars('hko_lat')
+data = data.drop_vars('hko_lon')
+data = data.drop_vars('hko_cat')        # storm category(letters permutation between S, T, D)
+
+# New Delhi-specific data
+data = data.drop_vars('newdelhi_lat')
+data = data.drop_vars('newdelhi_lon')
+data = data.drop_vars('newdelhi_grade') # storm grade(letters permutation between D, C, S, E, V)
+data = data.drop_vars('newdelhi_ci')    # Dvorak current intensity(RWMC New Delhi)(between 0.0 and 8.0)
+data = data.drop_vars('newdelhi_dp')    # storm pressure drop
+data = data.drop_vars('newdelhi_poci')  # pressure of outermost closed isobar
+
+# RSMC La Reunion-specific data(french monitoring center of the South-West Indian Ocean)
+data = data.drop_vars('reunion_lat')
+data = data.drop_vars('reunion_lon')
+data = data.drop_vars('reunion_type')   # storm type(from 1 to 9)
+data = data.drop_vars('reunion_tnum')   # Dvorak t number(from 0.0 to 8.0)
+data = data.drop_vars('reunion_ci')     # Dvorak Current Intensity (CI)(from 0.0 to 8.0)
+data = data.drop_vars('reunion_rmw')    # radius of maximum winds
+data = data.drop_vars('reunion_r34')    # radius of 34 knot winds(storm force)
+data = data.drop_vars('reunion_r50')    # radius of 50 knot winds(gale force)
+data = data.drop_vars('reunion_r64')    # radius of 64 knot winds(hurricane force)
+data = data.drop_vars('reunion_gust')   # maximum reported wind gust from Reunion
+data = data.drop_vars('reunion_gust_per')# time period of the wind gust from Reunion
+
+# Australian BoM-specific data
+data = data.drop_vars('bom_lat')
+data = data.drop_vars('bom_lon')
+data = data.drop_vars('bom_type')       # cyclone type(from 10 to 91)
+data = data.drop_vars('bom_tnum')       # Dvorak t number(from 0.0 to 8.0)
+data = data.drop_vars('bom_ci')         # Dvorak Current Intensity (CI)(from 0.0 to 8.0)
+data = data.drop_vars('bom_rmw')        # radius of maximum winds
+data = data.drop_vars('bom_r34')        # radius of 34 knot winds(storm force)
+data = data.drop_vars('bom_r50')        # radius of 50 knot winds(gale force)
+data = data.drop_vars('bom_r64')        # radius of 64 knot winds(hurricane force)
+data = data.drop_vars('bom_roci')       # radius of outermost closed isobar
+data = data.drop_vars('bom_poci')       # environmental pressure
+data = data.drop_vars('bom_eye')        # eye diameter
+data = data.drop_vars('bom_pos_method') # method used to derive position(from 1 to 13)
+data = data.drop_vars('bom_pres_method')# method used to derive intensity(from 1 to 9)
+data = data.drop_vars('bom_gust')       # maximum reported wind gust from BoM
+data = data.drop_vars('bom_gust_per')   # time period of the wind gust from BoM
+
+# RSMC Fiji-specific data
+data = data.drop_vars('nadi_lat')
+data = data.drop_vars('nadi_lon')
+data = data.drop_vars('nadi_cat')       # storm category
+
+# RSMC Wellington-specific data(New Zeland center)
+data = data.drop_vars('wellington_lat')
+data = data.drop_vars('wellington_lon')
+
+# DS824 dataset-specific data
+data = data.drop_vars('ds824_lat')
+data = data.drop_vars('ds824_lon')
+data = data.drop_vars('ds824_stage')    # storm classification
+
+# TD-9636 dataset-specific data
+data = data.drop_vars('td9636_lat')
+data = data.drop_vars('td9636_lon')
+data = data.drop_vars('td9636_stage')   # storm classification(from 0 to 7)
+
+# TD-9635 dataset-specific data
+data = data.drop_vars('td9635_lat')
+data = data.drop_vars('td9635_lon')
+data = data.drop_vars('td9635_roci')    # radius of outermost closed isobar
+
+# Neumann dataset-specific data
+data = data.drop_vars('neumann_lat')
+data = data.drop_vars('neumann_lon')
+data = data.drop_vars('neumann_class')  # storm classification
+
+# M.L. Chenoweth dataset-specific data
+data = data.drop_vars('mlc_lat')
+data = data.drop_vars('mlc_lon')
+data = data.drop_vars('mlc_class')      # storm classification
 
 # Useful variables(?)
-basins = data.basin                     # Current basin(NA, SA, EP, WP, SP, SI, NI)
-wmo_wind = data.wmo_wind                # Maximum sustained wind speed(kts) from Official WMO Agency
-wmo_pres = data.wmo_pres                # Minimum central pressure(mb) from Official WMO Agency
+data = data.drop_vars('basin')          # Current basin(NA, SA, EP, WP, SP, SI, NI)
+data = data.drop_vars('wmo_wind')       # Maximum sustained wind speed(kts) from Official WMO Agency
+data = data.drop_vars('wmo_pres')       # Minimum central pressure(mb) from Official WMO Agency
 data = data.drop_vars('track_type')     # name of track type(MAIN or SPUR, read the description)
 data = data.drop_vars('main_track_sid') # as above, check the description
+data = data.drop_vars('storm_speed')    # Storm translation speed(kts)
+data = data.drop_vars('storm_dir')      # Storm translation direction(degrees)
 data = data.drop_vars('usa_wind')       # Maximum sustained wind speed  from USA, for some storms it contains better data
 data = data.drop_vars('usa_pres')       # Minimum central pressure      from USA, for some storms it contains better data
-data = data.drop_vars('tokyo_wind')     # Maximum sustained wind speed  from Tokyo, for some storms it contains better data
-data = data.drop_vars('tokyo_pres')     # Minimum central pressure      from Tokyo, for some storms it contains better data
+data = data.drop_vars('tokyo_wind')
+data = data.drop_vars('tokyo_pres')
+data = data.drop_vars('cma_wind')
+data = data.drop_vars('cma_pres')
+data = data.drop_vars('hko_wind')
+data = data.drop_vars('hko_pres')
+data = data.drop_vars('newdelhi_wind')
+data = data.drop_vars('newdelhi_pres')
+data = data.drop_vars('reunion_wind')
+data = data.drop_vars('reunion_pres')
+data = data.drop_vars('bom_wind')
+data = data.drop_vars('bom_pres')
+data = data.drop_vars('nadi_wind')
+data = data.drop_vars('nadi_pres')
+data = data.drop_vars('wellington_wind')
+data = data.drop_vars('wellington_pres')
+data = data.drop_vars('ds824_wind')
+data = data.drop_vars('ds824_pres')
+data = data.drop_vars('td9636_wind')
+data = data.drop_vars('td9636_pres')
+data = data.drop_vars('td9635_wind')
+data = data.drop_vars('td9635_pres')
+data = data.drop_vars('neumann_wind')
+data = data.drop_vars('neumann_pres')
+data = data.drop_vars('mlc_wind')
+data = data.drop_vars('mlc_pres')
 
 
 # Check the % of non-NaN data in the passed variable, and find the highest
@@ -95,7 +212,7 @@ def find_NaN(data_var):      # es. find_NaN(data.wmo_wind)
         not_NaN = 0
         values = variable[i].values
         for j in range(data.date_time.size):
-            if values[j] == values[j]:    # NaN objects shapeshift, they are different from themselves
+            if values[j] == values[j]:    # NaN objects shapeshift, they are different from themselves. Can also do != b'' for other variables
                 not_NaN += 1
         not_NaN = not_NaN/360*100
         if highest[1] < not_NaN:
