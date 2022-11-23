@@ -88,7 +88,7 @@ for i in meridian_lines:
     print(i, "\n")
 
 lc = mc.LineCollection(meridian_lines[::50], linewidths=1)
-fig, ax = pl.subplots()
+fig, ax = plt.subplots()
 ax.add_collection(lc)
 ax.margins(0.1)
 plt.show()
