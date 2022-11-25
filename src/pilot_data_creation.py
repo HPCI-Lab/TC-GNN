@@ -72,7 +72,7 @@ edges = (mesh_data.edges.data.astype('int32') - 1).T
 edges_mask = []
 
 # Removing edges outside of the subset
-for start, end in edges:
+for start, end in edges:        # TODO: this is the much slower version, for the faster one look at cyclone_data_creation.py
     res = (start < subset) & (end < subset)
     edges_mask.append(res)
 

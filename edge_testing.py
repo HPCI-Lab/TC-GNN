@@ -11,7 +11,7 @@ model_lat = mesh_data.lat.values
 edge_0 = mesh_data.edges[0].values
 edge_1 = mesh_data.edges[1].values
 
-# These indexes start from 1 in the dataset
+# These indexes start from 1 in the dataset, let's bring them to zero
 edge_0 -= 1
 edge_1 -= 1
 
@@ -88,7 +88,7 @@ for i in meridian_lines:
     print(i, "\n")
 
 lc = mc.LineCollection(meridian_lines[::50], linewidths=1)
-fig, ax = plt.subplots()
+fig, ax = pl.subplots()
 ax.add_collection(lc)
 ax.margins(0.1)
 plt.show()
