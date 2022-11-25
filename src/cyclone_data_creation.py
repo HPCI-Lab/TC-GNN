@@ -4,36 +4,28 @@ import xarray as xr
 mesh_data = xr.open_dataset('../data/fesom.mesh.diag.nc')
 cyclones_data = xr.open_dataset('../data/IBTrACS/IBTrACS.since1980.v04r00.nc')
 
+
+### DELETE USELESS FIELDS ###
+
+vars_keys = mesh_data.data_vars
+for key in vars_keys:
+    if key is not ('lat' or 'lon' or 'edges'):
+        mesh_data = mesh_data.drop_vars(key)
+
+mesh_data = mesh_data.drop_vars('nz')   # These 2 are coordinates, not variables
+mesh_data = mesh_data.drop_vars('nz1')
+
+
+### SET THE CYCLONE BASIN ### - TODO: at the moment is just the area of interest of Shishir's work
+
 model_lon = mesh_data.lon.values
 model_lat = mesh_data.lat.values
 
-# Spatial subset of the chosen cyclone basin - TODO at the moment is just the area of interest of Shishir's work
 left = -70
 right = 30
 bottom = -60
 top = -20
 region_mask = (model_lon > left) & (model_lon < right) & (model_lat < top) & (model_lat > bottom)
-
-### DELETE USELESS FIELDS ###
-
-mesh_data = mesh_data.drop_vars('nz')
-mesh_data = mesh_data.drop_vars('nz1')
-mesh_data = mesh_data.drop_vars('edge_cross_dxdy')
-mesh_data = mesh_data.drop_vars('edge_tri')
-mesh_data = mesh_data.drop_vars('elem_area')
-mesh_data = mesh_data.drop_vars('elem_part')
-mesh_data = mesh_data.drop_vars('elements')
-mesh_data = mesh_data.drop_vars('gradient_sca_x')
-mesh_data = mesh_data.drop_vars('gradient_sca_y')
-mesh_data = mesh_data.drop_vars('nlevels')
-mesh_data = mesh_data.drop_vars('nlevels_nod2D')
-mesh_data = mesh_data.drop_vars('nod_area')
-mesh_data = mesh_data.drop_vars('nod_in_elem2D')
-mesh_data = mesh_data.drop_vars('nod_in_elem2D_num')
-mesh_data = mesh_data.drop_vars('nod_part')
-mesh_data = mesh_data.drop_vars('nodes')
-mesh_data = mesh_data.drop_vars('zbar_e_bottom')
-mesh_data = mesh_data.drop_vars('zbar_n_bottom')
 
 
 ### EDGES PROCESSING ###
