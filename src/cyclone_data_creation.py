@@ -51,7 +51,7 @@ for i in range(len(edge_0)):
 
 edges_subset = np.array(edges_subset, dtype="int32")
 mesh_data = mesh_data.drop_vars('edges')
-mesh_data['edges'] = (('edge_subset', 'n2'), edges[edges_mask])
+mesh_data['edges'] = (('edge_subset', 'n2'), edges_subset)
 
 # Write the pilot mesh to the filesystem
-#mesh_data.to_netcdf('./pilot_mesh.nc', engine='netcdf4') # The orignal mesh is 8.5GB, this is 153MB
+#mesh_data.to_netcdf('./pilot_mesh_cyclones.nc', engine='netcdf4') # The orignal mesh is 8.5GB, this is 153MB
