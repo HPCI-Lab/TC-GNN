@@ -9,7 +9,7 @@ cyclones_data = xr.open_dataset('../data/IBTrACS/IBTrACS.since1980.v04r00.nc')
 
 vars_keys = mesh_data.data_vars
 for key in vars_keys:
-    if key is not ('lat' or 'lon' or 'edges'):
+    if key != 'lat' and key != 'lon' and key != 'edges':
         mesh_data = mesh_data.drop_vars(key)
 
 mesh_data = mesh_data.drop_vars('nz')   # These 2 are coordinates, not variables
