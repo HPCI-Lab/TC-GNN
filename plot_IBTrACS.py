@@ -221,6 +221,19 @@ def find_NaN(data_var):      # es. find_NaN(data.wmo_wind)
         print(i, f"data full at {not_NaN}%")
     print('[', highest[0], highest[1], ']')
 
+# Counts the overall storm observations in each basin
+def count_storms():
+    storm = 0
+    basins = [b'EP', b'WP', b'SP', b'NA', b'SA', b'NI', b'SI', b'']
+    tmp = data.basin.values
+    basins_count = [0]*len(basins)
+    for s in range(data.storm.size):
+        for t in range(data.basin.date_time.size):
+            for b in range(len(basins)):
+                if tmp[s][t] == basins[b]:
+                    basins_count[b] += 1
+    print(basins, "\n", basins_count)
+
 
 # Histogram plot of the amount of cyclones recordings per season
 seasons = data.season.values
