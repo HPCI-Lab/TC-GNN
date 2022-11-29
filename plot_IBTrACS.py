@@ -208,17 +208,17 @@ data = data.drop_vars('mlc_pres')
 def find_NaN(data_var):      # es. find_NaN(data.wmo_wind)
     variable = data_var
     highest = [0, 0]
-    for i in range(data.storm.size):
+    for s in range(data.storm.size):
         not_NaN = 0
-        values = variable[i].values
-        for j in range(data.date_time.size):
-            if values[j] == values[j]:    # NaN objects shapeshift, they are different from themselves. Can also do != b'' for other variables
+        values = variable[s].values
+        for t in range(data.date_time.size):
+            if values[t] == values[t]:    # NaN objects shapeshift, they are different from themselves. Can also do != b'' for other variables
                 not_NaN += 1
-        not_NaN = not_NaN/360*100
+        not_NaN = not_NaN/data.date_time.size*100
         if highest[1] < not_NaN:
-            highest[0] = i
+            highest[0] = s
             highest[1] = not_NaN
-        print(i, f"data full at {not_NaN}%")
+        print(s, f"data full at {not_NaN}%")
     print('[', highest[0], highest[1], ']')
 
 # Counts the overall storm observations in each basin
@@ -243,6 +243,21 @@ def extract_basin(this_basin):
                 if s not in storms:
                     storms.append(s)
     print(f"These storms went at least once in the basin {this_basin}:\n", storms)
+    return storms
+
+# Calculates percentage of a basin occurrencies in a given set of storms
+def rates_of_basins(this_basin, these_storms):
+    basin_rates = []
+    tmp = data.basin.values
+    for s in range(len(these_storms)):
+        this_basin_rate = 0
+        for t in range(data.basin.date_time.size):
+            if tmp[these_storms[s]][t] == this_basin:
+                this_basin_rate += 1
+        this_basin_rate = this_basin_rate/data.date_time.size*100
+        basin_rates.append(this_basin_rate)
+    print(f"Rates of basin {this_basin} calculated.")
+    return basin_rates
 
 # Histogram plot of the amount of cyclones recordings per season
 seasons = data.season.values
