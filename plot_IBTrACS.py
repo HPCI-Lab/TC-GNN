@@ -249,15 +249,32 @@ def extract_basin(this_basin):
 def rates_of_basins(this_basin, these_storms):
     basin_rates = []
     tmp = data.basin.values
-    for s in range(len(these_storms)):
+    for s in these_storms:
         this_basin_rate = 0
         for t in range(data.basin.date_time.size):
-            if tmp[these_storms[s]][t] == this_basin:
+            if tmp[s][t] == this_basin:
                 this_basin_rate += 1
         this_basin_rate = this_basin_rate/data.date_time.size*100
         basin_rates.append(this_basin_rate)
     print(f"Rates of basin {this_basin} calculated.")
     return basin_rates
+
+# Calculates the most extreme points where these storms were recorded
+def boundaries_of_storms(these_storms):
+    lat = data.lat.values
+    lon = data.lon.values
+    left = right = bottom = top = 0
+    for s in these_storms:
+        for t in range(data.basin.date_time.size):
+            if lon[s][t] > right:
+                right = lon[s][t]
+            if lon[s][t] < left:
+                left = lon[s][t]
+            if lat[s][t] > bottom:
+                bottom = lat[s][t]
+            if lat[s][t] < top:
+                top = lat[s][t]
+    print(f"Boundaries of storms:\nleft: {left}\nright: {right}\nbottom: {bottom}\ntop: {top}")
 
 # Histogram plot of the amount of cyclones recordings per season
 seasons = data.season.values
