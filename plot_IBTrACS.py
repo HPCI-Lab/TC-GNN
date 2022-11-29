@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import xarray as xr
 
-data = xr.open_dataset('./data/IBTrACS.since1980.v04r00.nc')
+data = xr.open_dataset('./data/IBTrACS/IBTrACS.since1980.v04r00.nc')
 countries = gpd.read_file(gpd.datasets.get_path('naturalearth_lowres'))
 
 fig, ax = plt.subplots(figsize=(20, 10))
@@ -223,7 +223,6 @@ def find_NaN(data_var):      # es. find_NaN(data.wmo_wind)
 
 # Counts the overall storm observations in each basin
 def count_storms():
-    storm = 0
     basins = [b'EP', b'WP', b'SP', b'NA', b'SA', b'NI', b'SI', b'']
     tmp = data.basin.values
     basins_count = [0]*len(basins)
@@ -234,6 +233,16 @@ def count_storms():
                     basins_count[b] += 1
     print(basins, "\n", basins_count)
 
+# Finds storm ids for storms belonging to some basin(in byte format, e.g. b'WP')
+def extract_basin(this_basin):
+    storms = []
+    tmp = data.basin.values
+    for s in range(data.storm.size):
+        for t in range(data.basin.date_time.size):
+            if tmp[s][t] == this_basin:
+                if s not in storms:
+                    storms.append(s)
+    print(f"These storms went at least once in the basin {this_basin}:\n", storms)
 
 # Histogram plot of the amount of cyclones recordings per season
 seasons = data.season.values

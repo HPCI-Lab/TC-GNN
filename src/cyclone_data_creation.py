@@ -81,5 +81,5 @@ def check_nodes_edges():
         print("Something went really bad, need to debug")
 
 
-# Write the pilot mesh to the filesystem
+# Write the pilot mesh to the filesystem - TODO: write some "long_name" describing edges and nodes fields
 #mesh_data.to_netcdf('./pilot_mesh_cyclones.nc', engine='netcdf4') # The orignal mesh is 8.5GB, this is 156MB
