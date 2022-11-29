@@ -6,21 +6,26 @@ import xarray as xr
 data = xr.open_dataset('./data/IBTrACS/IBTrACS.since1980.v04r00.nc')
 countries = gpd.read_file(gpd.datasets.get_path('naturalearth_lowres'))
 
-fig, ax = plt.subplots(figsize=(20, 10))
 
-# Plot every country
-#countries.plot(color='grey', ax=ax)
+def plot_storms(these_storms):
+    fig, ax = plt.subplots(figsize=(20, 10))
 
-# Plot single continents/countries
-#countries[countries["continent"] == "Asia"].plot(color='grey', ax=ax)
-countries[countries["name"] == "Australia"].plot(color='grey', ax=ax)
+    # Plot every country
+    countries.plot(color='grey', ax=ax)
 
-st = 235
-data_sample = data.wmo_wind #pres
-plt.scatter(data.lon[st].values, data.lat[st].values, s=20, c=data_sample[st].values)    # TODO if a value is NaN, it's not gonna be plotted
-cbar = plt.colorbar(orientation='horizontal', pad=0.04)
-cbar.set_label(data_sample.long_name, labelpad=10)
-plt.show()
+    # Plot single continents/countries
+    #countries[countries["continent"] == "Asia"].plot(color='grey', ax=ax)
+    #countries[countries["name"] == "Australia"].plot(color='grey', ax=ax)
+
+    #st = 235
+    data_sample = data.wmo_wind #pres
+
+    for s in these_storms:
+        plt.scatter(data.lon[s].values, data.lat[s].values, s=20, c=data_sample[s].values)    # TODO if a value is NaN, it's not gonna be plotted
+
+    cbar = plt.colorbar(orientation='horizontal', pad=0.04)
+    cbar.set_label(data_sample.long_name, labelpad=10)
+    plt.show()
 
 # Variables
 data = data.drop_vars('numobs')         # no of observations
