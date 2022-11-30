@@ -288,16 +288,19 @@ def boundaries_of_storms(these_storms, lat_source=np.array([]), lon_source=np.ar
     else:
         lon = lon_source.values
         print("Custom longitude in use.")
-    left = right = bottom = top = 0
+    left = 180
+    right = -180
+    bottom = 90
+    top = -90
     for s in these_storms:
         for t in range(data.basin.date_time.size):
             if lon[s][t] > right:
                 right = lon[s][t]
             if lon[s][t] < left:
                 left = lon[s][t]
-            if lat[s][t] > bottom:
+            if lat[s][t] < bottom:
                 bottom = lat[s][t]
-            if lat[s][t] < top:
+            if lat[s][t] > top:
                 top = lat[s][t]
     print(f"Boundaries of storms:\nleft: {left}\nright: {right}\nbottom: {bottom}\ntop: {top}")
 
