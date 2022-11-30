@@ -6,25 +6,35 @@ import xarray as xr
 data = xr.open_dataset('./data/IBTrACS/IBTrACS.since1980.v04r00.nc')
 countries = gpd.read_file(gpd.datasets.get_path('naturalearth_lowres'))
 
-
-def plot_storms(these_storms):
+# Plot the storms set on given latitude, longitude and data source
+def plot_storms(these_storms, lat_source=np.array([]), lon_source=np.array([]), data_source=np.array([])):
     fig, ax = plt.subplots(figsize=(20, 10))
 
     # Plot every country
     countries.plot(color='grey', ax=ax)
-
     # Plot single continents/countries
     #countries[countries["continent"] == "Asia"].plot(color='grey', ax=ax)
     #countries[countries["name"] == "Australia"].plot(color='grey', ax=ax)
-
     #st = 235
-    data_sample = data.wmo_wind #pres
-
+    if not lat_source.any():
+        print("Standard latitude in use.")
+        lat_source = data.lat
+    else:
+        print("Custom latitude in use.")
+    if not lon_source.any():
+        lon_source = data.lon
+        print("Standard longitude in use.")
+    else:
+        print("Custom longitude in use.")
+    if not data_source.any():
+        data_source = data.wmo_wind
+        print("Standard wmo_wind in use.")
+    else:
+        print("Custom data in use.")
     for s in these_storms:
-        plt.scatter(data.lon[s].values, data.lat[s].values, s=20, c=data_sample[s].values)    # TODO if a value is NaN, it's not gonna be plotted
-
+        plt.scatter(lon_source[s].values, lat_source[s].values, s=20, c=data_source[s].values)    # TODO if a value is NaN, it's not gonna be plotted
     cbar = plt.colorbar(orientation='horizontal', pad=0.04)
-    cbar.set_label(data_sample.long_name, labelpad=10)
+    cbar.set_label(data_source.long_name, labelpad=10)
     plt.show()
 
 # Variables
@@ -247,7 +257,7 @@ def extract_basin(this_basin):
             if tmp[s][t] == this_basin:
                 if s not in storms:
                     storms.append(s)
-    print(f"These storms went at least once in the basin {this_basin}:\n", storms)
+    print(f"Found {len(storms)} storms crossing at least once the basin {this_basin}")
     return storms
 
 # Calculates percentage of a basin occurrencies in a given set of storms
@@ -265,9 +275,19 @@ def rates_of_basins(this_basin, these_storms):
     return basin_rates
 
 # Calculates the most extreme points where these storms were recorded
-def boundaries_of_storms(these_storms):
-    lat = data.lat.values
-    lon = data.lon.values
+def boundaries_of_storms(these_storms, lat_source=np.array([]), lon_source=np.array([])):
+    if not lat_source.any():
+        lat = data.lat.values
+        print("Standard latitude in use.")
+    else:
+        lat = lat_source.values
+        print("Custom latitude in use.")
+    if not lon_source.any():
+        lon = data.lon.values
+        print("Standard longitude in use.")
+    else:
+        lon = lon_source.values
+        print("Custom longitude in use.")
     left = right = bottom = top = 0
     for s in these_storms:
         for t in range(data.basin.date_time.size):
