@@ -7,34 +7,44 @@ data = xr.open_dataset('./data/IBTrACS/IBTrACS.since1980.v04r00.nc')
 countries = gpd.read_file(gpd.datasets.get_path('naturalearth_lowres'))
 
 # Plot the storms set on given latitude, longitude and data source
-def plot_storms(these_storms, lat_source=np.array([]), lon_source=np.array([]), data_source=np.array([])):
+def plot_storms(these_storms, lon_cyclone=np.array([]), lat_cyclone=np.array([]), data_cyclone=np.array([]),
+                                lon_mesh=np.array([]), lat_mesh=np.array([])):
     fig, ax = plt.subplots(figsize=(20, 10))
 
     # Plot every country
-    countries.plot(color='grey', ax=ax)
+    #countries.plot(color='grey', ax=ax)
     # Plot single continents/countries
     #countries[countries["continent"] == "Asia"].plot(color='grey', ax=ax)
     #countries[countries["name"] == "Australia"].plot(color='grey', ax=ax)
     #st = 235
-    if not lat_source.any():
-        print("Standard latitude in use.")
-        lat_source = data.lat
+    if not lon_cyclone.any():                       # Process cyclone longitude
+        lon_cyclone = data.lon
+        print("Standard cyclone longitude in use.")
     else:
-        print("Custom latitude in use.")
-    if not lon_source.any():
-        lon_source = data.lon
-        print("Standard longitude in use.")
+        print("Custom cyclone longitude in use.")
+    if not lat_cyclone.any():                       # Process cyclone latitude
+        print("Standard cyclone latitude in use.")
+        lat_cyclone = data.lat
     else:
-        print("Custom longitude in use.")
-    if not data_source.any():
-        data_source = data.wmo_wind
-        print("Standard wmo_wind in use.")
+        print("Custom cyclone latitude in use.")
+    if not data_cyclone.any():                      # Process cyclone data
+        data_cyclone = data.wmo_wind
+        print("Standard cyclone wmo_wind in use.")
     else:
-        print("Custom data in use.")
+        print("Custom cyclone data in use.")
+
+    # Plot the mesh(if there is one)
+    if not lon_mesh.any() and not lat_mesh.any():
+        print("No mesh data was passed.")
+    if lon_mesh.any() and lat_mesh.any():
+        print("Custom mesh data in use.")
+        plt.scatter(lon_mesh, lat_mesh, s=1)
+
+    # Plot the cyclones
     for s in these_storms:
-        plt.scatter(lon_source[s].values, lat_source[s].values, s=20, c=data_source[s].values)    # TODO if a value is NaN, it's not gonna be plotted
+        plt.scatter(lon_cyclone[s].values, lat_cyclone[s].values, s=20, c=data_cyclone[s].values)    # TODO if a value is NaN, it's not gonna be plotted
     cbar = plt.colorbar(orientation='horizontal', pad=0.04)
-    cbar.set_label(data_source.long_name, labelpad=10)
+    cbar.set_label(data_cyclone.long_name, labelpad=10)
     plt.show()
 
 # Variables
@@ -242,7 +252,7 @@ def count_storms():
     tmp = data.basin.values
     basins_count = [0]*len(basins)
     for s in range(data.storm.size):
-        for t in range(data.basin.date_time.size):
+        for t in range(data.date_time.size):
             for b in range(len(basins)):
                 if tmp[s][t] == basins[b]:
                     basins_count[b] += 1
@@ -253,7 +263,7 @@ def extract_basin(this_basin):
     storms = []
     tmp = data.basin.values
     for s in range(data.storm.size):
-        for t in range(data.basin.date_time.size):
+        for t in range(data.date_time.size):
             if tmp[s][t] == this_basin:
                 if s not in storms:
                     storms.append(s)
@@ -266,7 +276,7 @@ def rates_of_basins(this_basin, these_storms):
     tmp = data.basin.values
     for s in these_storms:
         this_basin_rate = 0
-        for t in range(data.basin.date_time.size):
+        for t in range(data.date_time.size):
             if tmp[s][t] == this_basin:
                 this_basin_rate += 1
         this_basin_rate = this_basin_rate/data.date_time.size*100
@@ -275,7 +285,7 @@ def rates_of_basins(this_basin, these_storms):
     return basin_rates
 
 # Calculates the most extreme points where these storms were recorded
-def boundaries_of_storms(these_storms, lat_source=np.array([]), lon_source=np.array([])):
+def boundaries_of_storms(these_storms, lon_source=np.array([]), lat_source=np.array([])):
     if not lat_source.any():
         lat = data.lat.values
         print("Standard latitude in use.")
@@ -288,12 +298,13 @@ def boundaries_of_storms(these_storms, lat_source=np.array([]), lon_source=np.ar
     else:
         lon = lon_source.values
         print("Custom longitude in use.")
+    # Opposite values are set here to favor their correction
     left = 180
     right = -180
     bottom = 90
     top = -90
     for s in these_storms:
-        for t in range(data.basin.date_time.size):
+        for t in range(data.date_time.size):
             if lon[s][t] > right:
                 right = lon[s][t]
             if lon[s][t] < left:
