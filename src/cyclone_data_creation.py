@@ -1,3 +1,4 @@
+import matplotlib.pyplot as plt
 import numpy as np
 import xarray as xr
 
@@ -16,15 +17,15 @@ mesh_data = mesh_data.drop_vars('nz')   # These 2 are coordinates, not variables
 mesh_data = mesh_data.drop_vars('nz1')
 
 
-### SET THE CYCLONE BASIN ### - TODO: at the moment is just the area of interest of Shishir's work
+### SET THE CYCLONE BASIN ### - setting it on South Indian storms on La Reunion longitude and latitude values
 
 model_lon = mesh_data.lon.values
 model_lat = mesh_data.lat.values
 
-left = -70
-right = 30
-bottom = -60
-top = -20
+left = 11
+right = 113.5
+bottom = -48
+top = -2
 region_mask = (model_lon > left) & (model_lon < right) & (model_lat < top) & (model_lat > bottom)
 
 
@@ -47,7 +48,7 @@ mesh_data = mesh_data.drop_vars('edges')
 mesh_data['edges'] = (('edges_subset', 'n2'), edges_subset)
 
 
-### NODES PROCESSING ### - just adds 3MB to the pivot file. TODO: you could also just derive the nodes from the set of edges(see check_nodes_edges() for details)
+### NODES PROCESSING ### - usually just adds 3MB to the pilot file. TODO: you could also just derive the nodes from the set of edges(see check_nodes_edges() for details)
 
 nodes_subset = []
 for i in range(len(region_mask)):
@@ -82,4 +83,4 @@ def check_nodes_edges():
 
 
 # Write the pilot mesh to the filesystem - TODO: write some "long_name" describing edges and nodes fields
-#mesh_data.to_netcdf('./pilot_mesh_cyclones.nc', engine='netcdf4') # The orignal mesh is 8.5GB, this is 156MB
+#mesh_data.to_netcdf('./pilot_mesh_cyclones.nc', engine='netcdf4') # The orignal mesh is 8.5GB, this is 155MB
