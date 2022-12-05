@@ -6,47 +6,6 @@ import xarray as xr
 data = xr.open_dataset('./data/IBTrACS/IBTrACS.since1980.v04r00.nc')
 countries = gpd.read_file(gpd.datasets.get_path('naturalearth_lowres'))
 
-# Plot the storms set on given latitude, longitude and data source
-def plot_storms(these_storms, lon_cyclone=np.array([]), lat_cyclone=np.array([]), data_cyclone=np.array([]),
-                                lon_mesh=np.array([]), lat_mesh=np.array([])):
-    fig, ax = plt.subplots(figsize=(20, 10))
-
-    # Plot every country
-    #countries.plot(color='grey', ax=ax)
-    # Plot single continents/countries
-    #countries[countries["continent"] == "Asia"].plot(color='grey', ax=ax)
-    #countries[countries["name"] == "Australia"].plot(color='grey', ax=ax)
-    #st = 235
-    if not lon_cyclone.any():                       # Process cyclone longitude
-        lon_cyclone = data.lon
-        print("Standard cyclone longitude in use.")
-    else:
-        print("Custom cyclone longitude in use.")
-    if not lat_cyclone.any():                       # Process cyclone latitude
-        print("Standard cyclone latitude in use.")
-        lat_cyclone = data.lat
-    else:
-        print("Custom cyclone latitude in use.")
-    if not data_cyclone.any():                      # Process cyclone data
-        data_cyclone = data.wmo_wind
-        print("Standard cyclone wmo_wind in use.")
-    else:
-        print("Custom cyclone data in use.")
-
-    # Plot the mesh(if there is one)
-    if not lon_mesh.any() and not lat_mesh.any():
-        print("No mesh data was passed.")
-    if lon_mesh.any() and lat_mesh.any():
-        print("Custom mesh data in use.")
-        plt.scatter(lon_mesh, lat_mesh, s=1)
-
-    # Plot the cyclones
-    for s in these_storms:
-        plt.scatter(lon_cyclone[s].values, lat_cyclone[s].values, s=20, c=data_cyclone[s].values)    # TODO if a value is NaN, it's not gonna be plotted
-    cbar = plt.colorbar(orientation='horizontal', pad=0.04)
-    cbar.set_label(data_cyclone.long_name, labelpad=10)
-    plt.show()
-
 # Variables
 data = data.drop_vars('numobs')         # no of observations
 data = data.drop_vars('sid')            # serial id
@@ -226,6 +185,46 @@ data = data.drop_vars('neumann_pres')
 data = data.drop_vars('mlc_wind')
 data = data.drop_vars('mlc_pres')
 
+
+# Plot the storms set on given latitude, longitude and data source
+def plot_storms(these_storms, lon_cyclone=np.array([]), lat_cyclone=np.array([]), data_cyclone=np.array([]), lon_mesh=np.array([]), lat_mesh=np.array([])):
+    fig, ax = plt.subplots(figsize=(20, 10))
+    
+    # Plot every country
+    #countries.plot(color='grey', ax=ax)
+    # Plot single continents/countries
+    #countries[countries["continent"] == "Asia"].plot(color='grey', ax=ax)
+    #countries[countries["name"] == "Australia"].plot(color='grey', ax=ax)
+    #st = 235
+    if not lon_cyclone.any():                       # Process cyclone longitude
+        lon_cyclone = data.lon
+        print("Standard cyclone longitude in use.")
+    else:
+        print("Custom cyclone longitude in use.")
+    if not lat_cyclone.any():                       # Process cyclone latitude
+        print("Standard cyclone latitude in use.")
+        lat_cyclone = data.lat
+    else:
+        print("Custom cyclone latitude in use.")
+    if not data_cyclone.any():                      # Process cyclone data
+        data_cyclone = data.wmo_wind
+        print("Standard cyclone wmo_wind in use.")
+    else:
+        print("Custom cyclone data in use.")
+
+    # Plot the mesh(if there is one)
+    if not lon_mesh.any() and not lat_mesh.any():
+        print("No mesh data was passed.")
+    if lon_mesh.any() and lat_mesh.any():
+        print("Custom mesh data in use.")
+        plt.scatter(lon_mesh, lat_mesh, s=1)
+
+    # Plot the cyclones
+    for s in these_storms:
+        plt.scatter(lon_cyclone[s].values, lat_cyclone[s].values, s=20, c=data_cyclone[s].values)    # TODO if a value is NaN, it's not gonna be plotted
+    cbar = plt.colorbar(orientation='horizontal', pad=0.04)
+    cbar.set_label(data_cyclone.long_name, labelpad=10)
+    plt.show()
 
 # Check the % of non-NaN data in the passed variable, and find the highest
 # Be careful: NaN data is perfectly fine, since we have 360 slots(one per day of the year) and the storms are active just on a subset of these
