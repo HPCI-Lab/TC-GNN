@@ -2,6 +2,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 import xarray as xr
 
+from utils.time_func import start_time, stop_time
+from utils.cyclones_func import extract_storms
+
 mesh_data = xr.open_dataset('../data/fesom.mesh.diag.nc')
 cyclones_data = xr.open_dataset('../data/IBTrACS/IBTrACS.since1980.v04r00.nc')
 
@@ -58,9 +61,14 @@ for i in range(len(region_mask)):
 nodes_subset = np.array(nodes_subset, dtype="int32")
 mesh_data['nodes'] =(('nodes_subset'), nodes_subset)
 
-### TODO: call functions from plot_IBTrACS() to extract the storms of interest ###
+
+### STORMS EXTRACTION ### - basin of choice: South Indian
+
+storms = extract_storms(cyclones_data, b'SI')
+
 
 ### CYCLONES INTERPOLATION ###
+
 #cyclones_lon = cyclones_data.reunion_lon[1].values[4]      # 1 as the storm to map, 4 as the day where the wind was recorded
 #cyclones_lat = cyclones_data.reunion_lat[1].values[4]
 cyclones_lon = cyclones_data.reunion_lon[storms].values[# TODO here you need only recorded wind values]
@@ -83,7 +91,6 @@ cyclones = np.array(cyclones)
 #timestamp = start_time()
 #stop_time(timestamp, "points creation")
 #node_indexes = np.argmin(np.sum((nodes - cyclones)**2, axis=1))
-
 
 
 ''' Nikolay's method

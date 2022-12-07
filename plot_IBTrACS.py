@@ -189,7 +189,7 @@ data = data.drop_vars('mlc_pres')
 # Plot the storms set on given latitude, longitude and data source
 def plot_storms(these_storms, lon_cyclone=np.array([]), lat_cyclone=np.array([]), data_cyclone=np.array([]), lon_mesh=np.array([]), lat_mesh=np.array([])):
     fig, ax = plt.subplots(figsize=(20, 10))
-    
+
     # Plot every country
     #countries.plot(color='grey', ax=ax)
     # Plot single continents/countries
@@ -256,18 +256,6 @@ def count_storms():
                 if tmp[s][t] == basins[b]:
                     basins_count[b] += 1
     print(basins, "\n", basins_count)
-
-# Finds storm ids for storms belonging to some basin(in byte format, e.g. b'WP')
-def extract_basin(this_basin):
-    storms = []
-    tmp = data.basin.values
-    for s in range(data.storm.size):
-        for t in range(data.date_time.size):
-            if tmp[s][t] == this_basin:
-                if s not in storms:
-                    storms.append(s)
-    print(f"Found {len(storms)} storms crossing at least once the basin {this_basin}")
-    return storms
 
 # Calculates percentage of a basin occurrencies in a given set of storms
 def rates_of_basins(this_basin, these_storms):
