@@ -58,6 +58,51 @@ for i in range(len(region_mask)):
 nodes_subset = np.array(nodes_subset, dtype="int32")
 mesh_data['nodes'] =(('nodes_subset'), nodes_subset)
 
+### TODO: call functions from plot_IBTrACS() to extract the storms of interest ###
+
+### CYCLONES INTERPOLATION ###
+#cyclones_lon = cyclones_data.reunion_lon[1].values[4]      # 1 as the storm to map, 4 as the day where the wind was recorded
+#cyclones_lat = cyclones_data.reunion_lat[1].values[4]
+cyclones_lon = cyclones_data.reunion_lon[storms].values[# TODO here you need only recorded wind values]
+cyclones_lat = cyclones_data.reunion_lat[storms].values[#TODO same as above]
+
+model_lon = mesh_data.lon[mesh_data.nodes].values
+model_lat = mesh_data.lat[mesh_data.nodes].values
+
+nodes = []
+for m in range(len(model_lon)):
+    nodes.append([model_lon[m], model_lat[m]])
+nodes = np.array(nodes)
+
+cyclones = []
+for c in range(len(cyclones_lon)):
+    cyclones.append([cyclones_lon[c], cyclones_lat[c]])
+cyclones = np.array(cyclones)
+
+# For each cyclone point, retrive the closest node index
+#timestamp = start_time()
+#stop_time(timestamp, "points creation")
+#node_indexes = np.argmin(np.sum((nodes - cyclones)**2, axis=1))
+
+
+
+''' Nikolay's method
+data_sample = cyclones_data.reunion_wind[1].values[4]
+points = np.vstack((cyclones_lon, cyclones_lat)).T
+nn_interpolation = NearestNDInterpolator(points, data_sample)
+from scipy.interpolate import NearestNDInterpolator
+nn_interpolation = NearestNDInterpolator(points, data_sample)
+interpolated_nn_fesom = nn_interpolation((model_lon, model_lat))
+plt.imshow(interpolated_nn_fesom)
+'''
+
+''' Voronoi - it gets the polygons pretty easily, but then you need something like Kirkpatrick's DAG
+from scipy.spatial import Voronoi, voronoi_plot_2d
+vor = Voronoi(points)   # qhull_options='Qbb Qc Qx' put this as parameter together with points to avoid the empty region used as infinite
+fig = voronoi_plot_2d(vor)
+plt.show()
+'''
+
 
 ### DEBUG FUNCTION ###
 
