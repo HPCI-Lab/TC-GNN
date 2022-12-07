@@ -71,26 +71,36 @@ storms = extract_storms(cyclones_data, b'SI')
 
 #cyclones_lon = cyclones_data.reunion_lon[1].values[4]      # 1 as the storm to map, 4 as the day where the wind was recorded
 #cyclones_lat = cyclones_data.reunion_lat[1].values[4]
-cyclones_lon = cyclones_data.reunion_lon[storms].values[# TODO here you need only recorded wind values]
-cyclones_lat = cyclones_data.reunion_lat[storms].values[#TODO same as above]
 
+# Extract the subset cyclones - TODO: in this version, every point with a recorded lon and lat is kept, regardless of the wind and pressure being present or not
+cyclones_lon = cyclones_data.reunion_lon.values
+cyclones_lat = cyclones_data.reunion_lat.values
+cyclones = []                                                   # contains a list of storm and time indexes
+for s in storms:
+    for t in range(cyclones_data.date_time.size):
+        if cyclones_lon[s][t] == cyclones_lon[s][t]:            # if longitude is not NaN
+            if cyclones_lat[s][t] == cyclones_lat[s][t]:        # if latitude is not NaN
+                cyclones.append([s, t])
+
+cyclones = np.array(cyclones)
+
+# Extract the subset nodes
 model_lon = mesh_data.lon[mesh_data.nodes].values
 model_lat = mesh_data.lat[mesh_data.nodes].values
-
 nodes = []
 for m in range(len(model_lon)):
     nodes.append([model_lon[m], model_lat[m]])
+
 nodes = np.array(nodes)
 
-cyclones = []
-for c in range(len(cyclones_lon)):
-    cyclones.append([cyclones_lon[c], cyclones_lat[c]])
-cyclones = np.array(cyclones)
+# For each cyclone point, retrive the closest node index - TODO: this is brute force, and it's REALLY slow, it takes ~9 minutes for 32152 cyclones to be mapped between 728622 nodes
+node_indexes = []
+timestamp = start_time()
+for storm, time in cyclones:
+    new_point = np.array([cyclones_lon[storm][time], cyclones_lat[storm][time]])
+    node_indexes.append(np.argmin(np.sum((nodes - new_point)**2, axis=1)))
 
-# For each cyclone point, retrive the closest node index
-#timestamp = start_time()
-#stop_time(timestamp, "points creation")
-#node_indexes = np.argmin(np.sum((nodes - cyclones)**2, axis=1))
+stop_time(timestamp, "points creation")
 
 
 ''' Nikolay's method
