@@ -85,11 +85,11 @@ for s in storms:
 cyclones = np.array(cyclones)
 
 # Extract the subset nodes
-model_lon = mesh_data.lon[mesh_data.nodes].values
-model_lat = mesh_data.lat[mesh_data.nodes].values
+model_lon_nodes = mesh_data.lon[mesh_data.nodes].values
+model_lat_nodes = mesh_data.lat[mesh_data.nodes].values
 nodes = []
-for m in range(len(model_lon)):
-    nodes.append([model_lon[m], model_lat[m]])
+for m in range(len(model_lon_nodes)):
+    nodes.append([model_lon_nodes[m], model_lat_nodes[m]])
 
 nodes = np.array(nodes)
 
@@ -109,7 +109,7 @@ points = np.vstack((cyclones_lon, cyclones_lat)).T
 nn_interpolation = NearestNDInterpolator(points, data_sample)
 from scipy.interpolate import NearestNDInterpolator
 nn_interpolation = NearestNDInterpolator(points, data_sample)
-interpolated_nn_fesom = nn_interpolation((model_lon, model_lat))
+interpolated_nn_fesom = nn_interpolation((model_lon_nodes, model_lat_nodes))
 plt.imshow(interpolated_nn_fesom)
 '''
 
@@ -120,8 +120,10 @@ fig = voronoi_plot_2d(vor)
 plt.show()
 '''
 
+### AFTER FINDING THE ASSOCIATIONS, YOU SHOULD SAVE INDEX OF NODES, LON, LAT, WIND AND PRES OF THE CYCLONES IN THE DATASET UNDER THE SAME DIMENSION
 
-### DEBUG FUNCTION ###
+
+### DEBUG FUNCTIONS ###
 
 # Check if the connection nodes and the nodes subset contain exactly the same set of nodes:
 def check_nodes_edges():
@@ -142,6 +144,17 @@ def check_nodes_edges():
         print(f"Edges and nodes contain the same {len(join_sides)} and {len(nodes_subset)} nodes")
     else:
         print("Something went really bad, need to debug")
+
+# Check that the model_l**_nodes assignment kept the ordering, so that the first value refers to the first node in mesh_data.nodes
+def check_nodes_lonlat_order():
+    tmp_nodes = mesh_data.nodes.values
+    for n in range(len(tmp_nodes)):
+        if model_lon[tmp_nodes[n]] != model_lon_nodes[n]:
+            print(f"Node {n} has a lon problem.")
+        if model_lat[tmp_nodes[n]] != model_lat_nodes[n]:
+            print(f"Node {n} has a lat problem.")
+    print("Local/global order has been checked.")
+
 
 
 # Write the pilot mesh to the filesystem - TODO: write some "long_name" describing edges and nodes fields
