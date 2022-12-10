@@ -1,3 +1,4 @@
+from math import isnan
 import matplotlib.pyplot as plt
 import numpy as np
 import xarray as xr
@@ -78,8 +79,8 @@ cyclones_lat = cyclones_data.reunion_lat.values
 cyclones = []                                                   # contains a list of storm and time indexes
 for s in storms:
     for t in range(cyclones_data.date_time.size):
-        if cyclones_lon[s][t] == cyclones_lon[s][t]:            # if longitude is not NaN
-            if cyclones_lat[s][t] == cyclones_lat[s][t]:        # if latitude is not NaN
+        if not isnan(cyclones_lon[s][t]):                  # if longitude is not NaN
+            if not isnan(cyclones_lat[s][t]):              # if latitude is not NaN
                 cyclones.append([s, t])
 
 cyclones = np.array(cyclones)
@@ -87,18 +88,22 @@ cyclones = np.array(cyclones)
 # Extract the subset nodes
 model_lon_nodes = mesh_data.lon[mesh_data.nodes].values
 model_lat_nodes = mesh_data.lat[mesh_data.nodes].values
-nodes = []
+nodes_lon_lat = []
 for m in range(len(model_lon_nodes)):
-    nodes.append([model_lon_nodes[m], model_lat_nodes[m]])
+    nodes_lon_lat.append([model_lon_nodes[m], model_lat_nodes[m]])
 
-nodes = np.array(nodes)
+nodes_lon_lat = np.array(nodes_lon_lat)
+check_nodes_lonlat_order()
 
 # For each cyclone point, retrive the closest node index - TODO: this is brute force, and it's REALLY slow, it takes ~9 minutes for 32152 cyclones to be mapped between 728622 nodes
 node_indexes = []
 timestamp = start_time()
-for storm, time in cyclones:
+for i in range(len(cyclones)):
+    storm = cyclones[i, 0]
+    time = cyclones[i, 1]
     new_point = np.array([cyclones_lon[storm][time], cyclones_lat[storm][time]])
-    node_indexes.append(np.argmin(np.sum((nodes - new_point)**2, axis=1)))
+    nearest_node = np.argmin(np.sum((nodes_lon_lat - new_point)**2, axis=1))
+    node_indexes.append([nearest_node, i])
 
 stop_time(timestamp, "points creation")
 
@@ -155,6 +160,43 @@ def check_nodes_lonlat_order():
             print(f"Node {n} has a lat problem.")
     print("Local/global order has been checked.")
 
+# Plot the cyclones over the mesh to see if the assignment went as expected
+def check_cyclones_assignment():
+    plt.figure(figsize=(20, 10))
+
+    node_indexes.sort(key=lambda a: a[0])               # sort by the local (nearest) node id
+    timestamp = start_time()
+    cyclones_counter = 0
+    for n in range(len(nodes_lon_lat)):
+        if cyclones_counter >= len(node_indexes):
+            print("Multiple storms were mapped on the same nearest nodes!!!")
+            break
+        local_node_id, cyclone_reference_id = node_indexes[cyclones_counter]
+        is_storm = False
+        while local_node_id == n:                       # if multiple storms were mapped to the same local node, loop until the next mapping node is different
+            is_storm = True
+            cyclones_counter += 1
+            if cyclones_counter >= len(node_indexes):
+                break
+            local_node_id, cyclone_reference_id = node_indexes[cyclones_counter]
+
+        # Check whether and what(just the mesh node or the cyclone) to plot
+        lon = nodes_lon_lat[n][0]
+        lat = nodes_lon_lat[n][1]
+        storm = cyclones[cyclone_reference_id][0]
+        date = cyclones[cyclone_reference_id][1]
+        wind = cyclones_data.reunion_wind[storm].values[date]
+        if is_storm:
+            if isnan(wind):                        # TODO: just check the wind for now, but we can extend it to pres
+                plt.scatter(lon, lat, s=1)
+            else:
+                plt.scatter(lon, lat, s=20, c=wind)
+        else:
+            plt.scatter(lon, lat, s=1)
+
+    stop_time(timestamp, "points creation")
+    plt.colorbar(orientation='horizontal', pad=0.04)
+    plt.show()
 
 
 # Write the pilot mesh to the filesystem - TODO: write some "long_name" describing edges and nodes fields
