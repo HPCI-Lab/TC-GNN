@@ -92,7 +92,7 @@ nodes_lon_lat = []
 for m in range(len(model_lon_nodes)):
     nodes_lon_lat.append([model_lon_nodes[m], model_lat_nodes[m]])
 
-nodes_lon_lat = np.array(nodes_lon_lat)
+nodes_lon_lat = np.array(nodes_lon_lat)         # comment this if you use bisect
 check_nodes_lonlat_order()
 
 # For each cyclone point, retrive the closest node index - TODO: this is brute force, and it's REALLY slow, it takes ~9 minutes for 32152 cyclones to be mapped between 728622 nodes
@@ -123,6 +123,21 @@ from scipy.spatial import Voronoi, voronoi_plot_2d
 vor = Voronoi(points)   # qhull_options='Qbb Qc Qx' put this as parameter together with points to avoid the empty region used as infinite
 fig = voronoi_plot_2d(vor)
 plt.show()
+'''
+
+''' # Bisect method - too fast to be correct, also because the coordinates of nodes can't be sorted in both dimensions at the same time
+# But can be useful in the future. Remember to comment line ~95
+import bisect as bs
+node_indexes = []
+timestamp = start_time()
+for i in range(len(cyclones)):
+    storm = cyclones[i, 0]
+    time = cyclones[i, 1]
+    new_point = [cyclones_lon[storm][time], cyclones_lat[storm][time]]
+    nearest_node = bs.bisect(nodes_lon_lat, new_point) - 1
+    node_indexes.append([nearest_node, i])
+
+stop_time(timestamp, "points creation")
 '''
 
 ### AFTER FINDING THE ASSOCIATIONS, YOU SHOULD SAVE INDEX OF NODES, LON, LAT, WIND AND PRES OF THE CYCLONES IN THE DATASET UNDER THE SAME DIMENSION
