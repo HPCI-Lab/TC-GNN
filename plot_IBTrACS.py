@@ -1,4 +1,5 @@
 import geopandas as gpd  # geopandas for earth contours
+import math
 import matplotlib.pyplot as plt
 import numpy as np
 import xarray as xr
@@ -236,7 +237,7 @@ def find_NaN(data_var):      # es. find_NaN(data.wmo_wind)
         not_NaN = 0
         values = variable[s].values
         for t in range(data.date_time.size):
-            if values[t] == values[t]:    # NaN objects shapeshift, they are different from themselves. Can also do != b'' for other variables
+            if not math.isnan(values[t]):           # can also do != b'' for other variables
                 not_NaN += 1
         not_NaN = not_NaN/data.date_time.size*100
         if highest[1] < not_NaN:
