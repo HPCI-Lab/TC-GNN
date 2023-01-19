@@ -5,32 +5,38 @@ from torch_geometric.data import InMemoryDataset            # For data fitting i
 import xarray as xr
 
 class PilotDataset(InMemoryDataset):
-    def __init__(self, root, transform=None, pre_transform=None):
+    def __init__(self, root, transform=None, pre_transform=None, pre_filter=None):
         """
         root = Where the dataset should be stored and divided into processed/ and raw/
         """
-        super(PilotDataset, self).__init__(root, transform, pre_transform)
-        #self.data, self.slices = torch.load(self.processed_paths[0])
+        #super(PilotDataset, self).__init__(root, transform, pre_transform)     # from the "GNN hands on" guide, and youtube video
+        super().__init__(root, transform, pre_transform, pre_filter)            # from PyG documentation
+        self.data, self.slices = torch.load(self.processed_paths[0])            # from PyG documentation
+
 
     @property
     # Return a list of raw, unprocessed file names
     def raw_file_names(self):
-        return ['./pilot_mesh.nc', './pilot_ssh.nc', './pilot_unod.nc', './pilot_vnod.nc']
+        return ['./1980_10_03_15_ERA5.nc']
+
 
     @property
-    # Return a list of files in the processed/ folder. These files need to be found in order to skip the processing.
+    # Return a list of files in the processed/ folder.
+    # If these files don't exist, process() will start and create them. If these files exist, process() will be skipped.
     # After process(), the returned list should have the only processed data file name
     def processed_file_names(self):
-        return ['./not_implemented.pt']
+        return './not_implemented.pt'
+
 
     # Download the raw data into raw/, or the folder specified in self.raw_dir
     def download(self):
         pass
 
+
     # Process raw data and save it into the processed/
     # This function is triggered as soon as the PilotDataset is instantiated
     def process(self):
-        print("Processing...")
+        print(" - PilotDataset - process()")
 
         # Get node features
         node_feats = self._get_node_features()
@@ -68,14 +74,27 @@ class PilotDataset(InMemoryDataset):
         """
         This will return a matrix, nodes per features
         """
-        self.data_mesh = xr.open_dataset(self.raw_paths[0])
-        self.data_unod = xr.open_dataarray(self.raw_paths[2])
+        self.data = xr.open_dataset(self.raw_paths[0])
 
-        _node_feats = []
-        # TODO iterate over the nodes and append stuff into the list. the guy in the video has 
+        lon_size = self.data.lon.size
+        lat_size = self.data.lat.size
+        N_nodes = lon_size*lat_size
+        N_node_features = len(self.data.data_vars)
+        all_nodes_feats =[]
+        tmp_msl = self.data.msl.values      # TODO: talk with cmcc guys to understand if they treat this in some way
+        # too slow alternative: float(self.data.msl.isel(time=0, lat=lat, lon=lon).values)
 
-        _node_feats = np.asarray(_node_feats)
-        return torch.tensor(_node_feats, dtype=torch.float)
+        for lon in range(lon_size):
+            for lat in range(lat_size):
+                node_feats = []
+                node_feats.append(tmp_msl[0, lat, lon])     # 0 is the timestamp
+                # TODO: append all the other 7 variables
+                all_nodes_feats.append(node_feats)
+
+        print(len(all_nodes_feats))
+        
+        all_nodes_feats = np.asarray(all_nodes_feats)
+        return torch.tensor(all_nodes_feats, dtype=torch.float)
 
     def _get_edge_features(self):
         # TODO same thing as before, but iterate over the edges. Not sure if I'll need this
@@ -99,4 +118,5 @@ class PilotDataset(InMemoryDataset):
         return torch.tensor(coo, dtype=torch.long)              # it works even here
 
     def _get_labels(self):
+        # TODO: need the ibtracs labels in here
         pass

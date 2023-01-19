@@ -29,7 +29,7 @@ data = Data(x=x, y=y, edge_index=edge_index)
 print(data)
 
 # This will automatically search for processed/ and raw/ in the specified path, creating the folders if not found.
-dataset = Dataset.PilotDataset('./data/pilot/')
+dataset = Dataset.PilotDataset('./data/cmcc_structured')
 
 ## DataLoader - allows to feed data by batch into the model. The "batch" information is used by the GNN model to tell which nodes belong to which graph
 loader = DataLoader(dataset, batch_size=512, shuffle=True)      # IT BREAKS HERE
