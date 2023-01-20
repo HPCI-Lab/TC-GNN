@@ -44,7 +44,10 @@ class PilotDataset(InMemoryDataset):
 
         # Get edge features
         edge_feats = self._get_edge_features()
-        print("...edge features collected...")
+        if len(edge_feats)==0:
+            print("...ignoring edge features...")
+        else:
+            print("...edge features collected...")
 
         # Get adjacency info 
         edge_index = self._get_adjacency_info()
@@ -70,16 +73,13 @@ class PilotDataset(InMemoryDataset):
         #torch.save((data, slices), self.processed_paths[0])       
         #torch.save(data, os.path.join(self.processed_dir, f'data_{0}.pt'))
 
-    def _get_node_features(self):
-        """
-        This will return a matrix, nodes per features
-        """
-        self.data = xr.open_dataset(self.raw_paths[0])
 
-        lon_size = self.data.lon.size
-        lat_size = self.data.lat.size
-        N_nodes = lon_size*lat_size
-        N_node_features = len(self.data.data_vars)
+    # This will return a matrix with shape=[num_nodes, num_node_features]
+    #   nodes: the geographic locations
+    #   features: the ERA5 variables
+    def _get_node_features(self):
+
+        self.data = xr.open_dataset(self.raw_paths[0])
         all_nodes_feats =[]
 
         # Extract the list of ERA5 variables
@@ -88,8 +88,8 @@ class PilotDataset(InMemoryDataset):
             ERA5_vars.append(self.data.data_vars[key].values)   # TODO: talk with cmcc guys to understand if they treat this in some way 
 
         # The order of nodes is implicit in how I perform these lon/lat loops
-        for lon in range(lon_size):
-            for lat in range(lat_size):
+        for lon in range(self.data.lon.size):
+            for lat in range(self.data.lat.size):
                 node_feats = []
                 for variable in ERA5_vars:
                     node_feats.append(variable[0, lat, lon])     # 0 is the timestamp
@@ -98,30 +98,54 @@ class PilotDataset(InMemoryDataset):
                 all_nodes_feats.append(node_feats)
 
         print("   Shape of node feature matrix:", np.shape(all_nodes_feats))
-
         all_nodes_feats = np.asarray(all_nodes_feats)
         return torch.tensor(all_nodes_feats, dtype=torch.float)
 
+    
+    # We won't need this, since the edges are only useful to connect the spatial locations
     def _get_edge_features(self):
-        # TODO same thing as before, but iterate over the edges. Not sure if I'll need this
-        _edge_feats = []
-        _edge_feats = np.asarray(_edge_feats)
-        return _edge_feats
+        all_edge_feats = []
+        all_edge_feats = np.asarray(all_edge_feats)
+        return all_edge_feats
 
+
+    # This has to return the graph connetivity in COO with shape=[2, num_edges]
+    # We're gonna skip the creation of an adjacency matrix to save computation time and memory
     def _get_adjacency_info(self):
-        # TODO convert the mesh edges to an adjacency matrix
+        
+        lon_size = self.data.lon.size
+        lat_size = self.data.lat.size
+        coo_links = [[], []]
+        this_node = 0
+
+        # The order of nodes is implicit in how I perform these lon/lat loops, but here I keep track of it for ease of computation
+        for lon in range(lon_size):
+            for lat in range(lat_size):
+                # Check whether a cell below does exist. If so, add the link
+                if (lat-1)>=0:
+                    coo_links[0].append(this_node)
+                    coo_links[1].append(this_node-1)
+                # Check whether a cell on the right does exist. If so, add the link
+                if (lon+1)<lon_size:
+                    coo_links[0].append(this_node)
+                    coo_links[1].append(this_node+lat_size)
+                # Check whether a cell above does exist. If so, add the link
+                if (lat+1)<lat_size:
+                    coo_links[0].append(this_node)
+                    coo_links[1].append(this_node+1)
+                # Check whether a cell on the left does exist. If so, add the link
+                if (lon-1)>=0:
+                    coo_links[0].append(this_node)
+                    coo_links[1].append(this_node-lat_size)
+                
+                this_node += 1
+        '''
         N_nodes = self.data_mesh.spatial_subset.size
         adj_matrix = np.zeros((N_nodes, N_nodes), dtype=bool)   # TODO: too big in RAM, an adjacency list should be much more efficient
-        
-        # Let's put some random connections in here
-        adj_matrix[0][0] = True
-        adj_matrix[10][10] = True
-        adj_matrix[100][100] = True
+        '''
+        print("   Shape of graph connectivity in COO format:", np.shape(coo_links))
+        return torch.tensor(coo_links, dtype=torch.long)
 
-        row, col = np.where(adj_matrix)
-        coo = np.array(list(zip(row, col)))                     # conversion to COO format
-        coo = np.reshape(coo, (2, -1))                          # no idea why these numbers
-        return torch.tensor(coo, dtype=torch.long)              # it works even here
 
     def _get_labels(self):
         # TODO: need the ibtracs labels in here
