@@ -81,18 +81,24 @@ class PilotDataset(InMemoryDataset):
         N_nodes = lon_size*lat_size
         N_node_features = len(self.data.data_vars)
         all_nodes_feats =[]
-        tmp_msl = self.data.msl.values      # TODO: talk with cmcc guys to understand if they treat this in some way
-        # too slow alternative: float(self.data.msl.isel(time=0, lat=lat, lon=lon).values)
 
+        # Extract the list of ERA5 variables
+        ERA5_vars = []
+        for key in self.data.data_vars:
+            ERA5_vars.append(self.data.data_vars[key].values)   # TODO: talk with cmcc guys to understand if they treat this in some way 
+
+        # The order of nodes is implicit in how I perform these lon/lat loops
         for lon in range(lon_size):
             for lat in range(lat_size):
                 node_feats = []
-                node_feats.append(tmp_msl[0, lat, lon])     # 0 is the timestamp
-                # TODO: append all the other 7 variables
+                for variable in ERA5_vars:
+                    node_feats.append(variable[0, lat, lon])     # 0 is the timestamp
+                    # too slow alternative: .append(float(self.data.msl.isel(time=0, lat=lat, lon=lon).values))
+                
                 all_nodes_feats.append(node_feats)
 
-        print(len(all_nodes_feats))
-        
+        print("   Shape of node feature matrix:", np.shape(all_nodes_feats))
+
         all_nodes_feats = np.asarray(all_nodes_feats)
         return torch.tensor(all_nodes_feats, dtype=torch.float)
 
