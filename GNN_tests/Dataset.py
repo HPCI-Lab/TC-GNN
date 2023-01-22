@@ -17,7 +17,7 @@ class PilotDataset(InMemoryDataset):
     @property
     # Return a list of raw, unprocessed file names
     def raw_file_names(self):
-        return ['./1980_10_03_15_ERA5.nc']
+        return ['./ERA5_test.nc']
 
 
     @property
@@ -85,7 +85,8 @@ class PilotDataset(InMemoryDataset):
         # Extract the list of ERA5 variables
         ERA5_vars = []
         for key in self.data.data_vars:
-            ERA5_vars.append(self.data.data_vars[key].values)   # TODO: talk with cmcc guys to understand if they treat this in some way 
+            if key!='ibtracs':      # TODO: check the variable name in the final dataset
+                ERA5_vars.append(self.data.data_vars[key].values)   # TODO: talk with cmcc guys to understand if they treat this in some way 
 
         # The order of nodes is implicit in how I perform these lon/lat loops
         for lon in range(self.data.lon.size):
@@ -147,6 +148,15 @@ class PilotDataset(InMemoryDataset):
         return torch.tensor(coo_links, dtype=torch.long)
 
 
+    # Here we're gonna put the ibtracs data to classify the nodes
     def _get_labels(self):
-        # TODO: need the ibtracs labels in here
-        pass
+        
+        labels = []
+        tmp_ibtracs = self.data.ibtracs.values
+        
+        for lon in range(self.data.lon.size):
+            for lat in range(self.data.lat.size):
+                labels.append(tmp_ibtracs[lat, lon])
+        
+        print("   Shape of labels:", np.shape(labels))
+        return torch.tensor(labels, dtype=torch.float)
