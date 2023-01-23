@@ -1,6 +1,7 @@
 import numpy as np
 import os
 import torch
+from torch_geometric.data import Data
 from torch_geometric.data import InMemoryDataset            # For data fitting in my RAM
 import xarray as xr
 
@@ -11,7 +12,6 @@ class PilotDataset(InMemoryDataset):
         """
         #super(PilotDataset, self).__init__(root, transform, pre_transform)     # from the "GNN hands on" guide, and youtube video
         super().__init__(root, transform, pre_transform, pre_filter)            # from PyG documentation
-        self.data, self.slices = torch.load(self.processed_paths[0])            # from PyG documentation
 
 
     @property
@@ -25,7 +25,7 @@ class PilotDataset(InMemoryDataset):
     # If these files don't exist, process() will start and create them. If these files exist, process() will be skipped.
     # After process(), the returned list should have the only processed data file name
     def processed_file_names(self):
-        return './not_implemented.pt'
+        return './data_processed.pt'
 
 
     # Download the raw data into raw/, or the folder specified in self.raw_dir
@@ -36,34 +36,28 @@ class PilotDataset(InMemoryDataset):
     # Process raw data and save it into the processed/
     # This function is triggered as soon as the PilotDataset is instantiated
     def process(self):
-        print(" - PilotDataset - process()")
 
         # Get node features
         node_feats = self._get_node_features()
         print("...node features collected...")
 
-        # Get edge features
+        # Get edge features - for our task we don't need this
         edge_feats = self._get_edge_features()
-        if len(edge_feats)==0:
-            print("...ignoring edge features...")
-        else:
-            print("...edge features collected...")
+        print("...ignoring edge features...")
 
         # Get adjacency info 
         edge_index = self._get_adjacency_info()
         print("...adjacency info collected...")
 
         # Get labels info
-        label = self._get_labels()
+        labels = self._get_labels()
         print("...labels collected.")
 
         # Create the Data object
-#        data = Data(x=node_feats,               # node feature matrix
-#                    edge_index=edge_index,      # graph connectivity in COO format
-#                    edge_attr=edge_feats,       # edge feature matrix
-#                    y=label,                    # graph or node targets
-#                    smiles=
-#                    )
+        data = Data(x=node_feats,                       # node features
+                    edge_index=edge_index,              # edge connectivity
+                    y=labels,                           # labels for classification
+                    )
 
         # The collated data object has concatenated all examples into one big data object and returns a "slices" dictionary
         # to reconstruct single examples from this object
@@ -71,7 +65,7 @@ class PilotDataset(InMemoryDataset):
 
         # Load data and slices in the constructor into the properties "self.data" and "self.slices"
         #torch.save((data, slices), self.processed_paths[0])       
-        #torch.save(data, os.path.join(self.processed_dir, f'data_{0}.pt'))
+        torch.save(data, os.path.join(self.processed_dir, f'data_{"processed"}.pt'))
 
 
     # This will return a matrix with shape=[num_nodes, num_node_features]
@@ -119,7 +113,7 @@ class PilotDataset(InMemoryDataset):
         coo_links = [[], []]
         this_node = 0
 
-        # The order of nodes is implicit in how I perform these lon/lat loops, but here I keep track of it for ease of computation
+        # The order of nodes is implicit in how I perform these lon/lat loops and in the variable "this_node"
         for lon in range(lon_size):
             for lat in range(lat_size):
                 # Check whether a cell below does exist. If so, add the link
