@@ -72,12 +72,6 @@ class PilotDataset(Dataset):
                 y=labels,                           # labels for classification
             )
 
-            # The collated data object has concatenated all examples into one big data object and returns a "slices" dictionary
-            # to reconstruct single examples from this object
-            #data, slices = self.collate(data_list)
-
-            # Load data and slices in the constructor into the properties "self.data" and "self.slices"
-            #torch.save((data, slices), self.processed_paths[0])       
             torch.save(data, os.path.join(self.processed_dir, f'data_{idx}.pt'))
             idx += 1
 
@@ -168,14 +162,3 @@ class PilotDataset(Dataset):
         print("   Shape of labels:", np.shape(labels))
         return torch.tensor(labels, dtype=torch.float)
 
-
-#%% Creating the dataset 
-dataset = Dataset.PilotDataset(root='./data/cmcc_structured')
-dataset.get(0).edge_index
-
-# %%
-from torch_geometric.loader import DataLoader
-loader = DataLoader(dataset, batch_size=512, shuffle=True)
-print(loader.dataset)
-
-# %%
