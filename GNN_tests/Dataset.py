@@ -6,26 +6,31 @@ from torch_geometric.data import Dataset
 import xarray as xr
 
 class PilotDataset(Dataset):
+
+    # root: Where the dataset should be stored and divided into processed/ and raw/
     def __init__(self, root, transform=None, pre_transform=None, pre_filter=None):
-        """
-        root = Where the dataset should be stored and divided into processed/ and raw/
-        """
         #super(PilotDataset, self).__init__(root, transform, pre_transform)     # from the "GNN hands on" guide, and youtube video
         super().__init__(root, transform, pre_transform, pre_filter)            # from PyG documentation
+        
+        self.num_classes = 2
 
 
     @property
     # Return a list of raw, unprocessed file names
     def raw_file_names(self):
-        return ['./ERA5_test_0.nc', './ERA5_test_1.nc']
+        return ['./ERA5_test_0.nc', './ERA5_test_1.nc', './ERA5_test_2.nc',
+         './ERA5_test_3.nc', './ERA5_test_4.nc', './ERA5_test_5.nc',
+         './ERA5_test_6.nc', './ERA5_test_7.nc', './ERA5_test_8.nc', './ERA5_test_9.nc']
 
 
     @property
     # Return a list of files in the processed/ folder.
-    # If these files don't exist, process() will start and create them. If these files exist, process() will be skipped.
+    # If these files don't exist, process() will start and create them.
+    # If these files exist, process() will be skipped.
     # After process(), the returned list should have the only processed data file name
     def processed_file_names(self):
-        return ['data_0.pt', 'data_1.pt']
+        return ['data_0.pt', 'data_1.pt', 'data_2.pt', 'data_3.pt', 'data_4.pt', 'data_5.pt',
+         'data_6.pt', 'data_7.pt', 'data_8.pt', 'data_9.pt']
 
 
     # Download the raw data into raw/, or the folder specified in self.raw_dir
@@ -47,6 +52,10 @@ class PilotDataset(Dataset):
     # Process raw data and save it into the processed/
     # This function is triggered as soon as the PilotDataset is instantiated
     def process(self):
+        
+        # Conserving adjacency info to avoid computing it every time
+        edge_index = None
+
         idx = 0
         for raw_path in self.raw_paths:
 
@@ -57,10 +66,11 @@ class PilotDataset(Dataset):
             node_feats = self._get_node_features(raw_data)
 
             # Get edge features - for our task we don't need this
-            edge_feats = self._get_edge_features(raw_data)
+            #edge_feats = self._get_edge_features(raw_data)
 
-            # Get adjacency info 
-            edge_index = self._get_adjacency_info(raw_data)
+            # Get adjacency info
+            if edge_index==None:
+                edge_index = self._get_adjacency_info(raw_data)
 
             # Get labels info
             labels = self._get_labels(raw_data)
