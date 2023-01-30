@@ -9,19 +9,19 @@ class PilotDataset(Dataset):
 
     # root: Where the dataset should be stored and divided into processed/ and raw/
     def __init__(self, root, transform=None, pre_transform=None, pre_filter=None):
-        #super(PilotDataset, self).__init__(root, transform, pre_transform)     # from the "GNN hands on" guide, and youtube video
-        super().__init__(root, transform, pre_transform, pre_filter)            # from PyG documentation
+        super().__init__(root, transform, pre_transform, pre_filter)
         
         self.num_classes = 2
-
 
     @property
     # Return a list of raw, unprocessed file names
     def raw_file_names(self):
-        return ['./ERA5_test_0.nc', './ERA5_test_1.nc', './ERA5_test_2.nc',
-         './ERA5_test_3.nc', './ERA5_test_4.nc', './ERA5_test_5.nc',
-         './ERA5_test_6.nc', './ERA5_test_7.nc', './ERA5_test_8.nc', './ERA5_test_9.nc']
-
+        return [
+            './ERA5_test_0.nc', './ERA5_test_1.nc', './ERA5_test_2.nc',
+            './ERA5_test_3.nc', './ERA5_test_4.nc', './ERA5_test_5.nc',
+            './ERA5_test_6.nc', './ERA5_test_7.nc', './ERA5_test_8.nc',
+            './ERA5_test_9.nc'
+        ]
 
     @property
     # Return a list of files in the processed/ folder.
@@ -29,25 +29,10 @@ class PilotDataset(Dataset):
     # If these files exist, process() will be skipped.
     # After process(), the returned list should have the only processed data file name
     def processed_file_names(self):
-        return ['data_0.pt', 'data_1.pt', 'data_2.pt', 'data_3.pt', 'data_4.pt', 'data_5.pt',
-         'data_6.pt', 'data_7.pt', 'data_8.pt', 'data_9.pt']
-
-
-    # Download the raw data into raw/, or the folder specified in self.raw_dir
-    def download(self):
-        pass
-
-
-    # Returns the number of examples in the dataset
-    def len(self):
-        return len(self.processed_file_names)
-    
-
-    # Implements the logic to load a single graph
-    def get(self, idx):
-        data = torch.load(os.path.join(self.processed_dir, f'data_{idx}.pt'))
-        return data
-
+        return [
+            'data_0.pt', 'data_1.pt', 'data_2.pt', 'data_3.pt', 'data_4.pt',
+            'data_5.pt', 'data_6.pt', 'data_7.pt', 'data_8.pt', 'data_9.pt'
+        ]
 
     # Process raw data and save it into the processed/
     # This function is triggered as soon as the PilotDataset is instantiated
@@ -85,7 +70,6 @@ class PilotDataset(Dataset):
             torch.save(data, os.path.join(self.processed_dir, f'data_{idx}.pt'))
             idx += 1
 
-
     # This will return a matrix with shape=[num_nodes, num_node_features]
     #   nodes: the geographic locations
     #   features: the ERA5 variables
@@ -112,14 +96,12 @@ class PilotDataset(Dataset):
         print("   Shape of node feature matrix:", np.shape(all_nodes_feats))
         all_nodes_feats = np.asarray(all_nodes_feats)
         return torch.tensor(all_nodes_feats, dtype=torch.float)
-
     
     # We won't need this, since the edges are only useful to connect the spatial locations
     def _get_edge_features(self, data):
         all_edge_feats = []
         all_edge_feats = np.asarray(all_edge_feats)
         return all_edge_feats
-
 
     # This has to return the graph connetivity in COO with shape=[2, num_edges]
     # We're gonna skip the creation of an adjacency matrix to save computation time and memory
@@ -158,7 +140,6 @@ class PilotDataset(Dataset):
         print("   Shape of graph connectivity in COO format:", np.shape(coo_links))
         return torch.tensor(coo_links, dtype=torch.long)
 
-
     # Here we're gonna put the ibtracs data to classify the nodes
     def _get_labels(self, data):
         
@@ -172,3 +153,16 @@ class PilotDataset(Dataset):
         print("   Shape of labels:", np.shape(labels))
         return torch.tensor(labels, dtype=torch.float)
 
+
+    # Download the raw data into raw/, or the folder specified in self.raw_dir
+    def download(self):
+        pass
+
+    # Returns the number of examples in the dataset
+    def len(self):
+        return len(self.processed_file_names)
+    
+    # Implements the logic to load a single graph
+    def get(self, idx):
+        data = torch.load(os.path.join(self.processed_dir, f'data_{idx}.pt'))
+        return data
