@@ -3,8 +3,10 @@ import torch
 import torch_geometric
 import torch.nn.functional as F
 from torch_geometric.loader import DataLoader
+
 import Dataset
 import Model
+import summary  # should be torch_geometric.nn.summary, but it doesn't work
 
 # %%
 print(f"Torch version: {torch.__version__}")
@@ -12,8 +14,11 @@ print(f"Cuda available: {torch.cuda.is_available()}")
 print(f"Torch geometric version: {torch_geometric.__version__}")
 
 # %% Creating the dataset
-dataset = Dataset.PilotDataset(root='./data/cmcc_structured')
-dataset[0]
+dataset = Dataset.PilotDataset(root='./data/bsc')#'./data/cmcc_structured')
+
+# Note that cyclone files start from 1, not form 0
+dataset.get(year=1983, cyclone=1).is_directed()
+dataset.get(1983, 1)
 
 # %% The Dataloader allows to feed data by batch into the model to exploit parallelism
 # The "batch" information is used by the GNN model to tell which nodes belong to which graph
@@ -28,17 +33,22 @@ for batch in train_loader:
     print(batch)
 
 # %%
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+device = torch.device('cpu')#'cuda' if torch.cuda.is_available() else 'cpu')
 device
 
 # %% cora.py example on PyG repository
 model = Model.GCN(
     in_channels = dataset.num_features,
     hidden_channels = 16,
-    out_channels = dataset.num_classes
+    out_channels = 2
 ).to(device)
 model.cpu
 
+#x = torch.randn(100, 7)
+#edge_index = torch.randint(100, size=(2, 20))
+#print(summary(model, x, edge_index))
+
+# %%
 data = dataset[0].to(device)
 optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
 

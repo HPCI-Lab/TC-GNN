@@ -10,18 +10,13 @@ class PilotDataset(Dataset):
     # root: Where the dataset should be stored and divided into processed/ and raw/
     def __init__(self, root, transform=None, pre_transform=None, pre_filter=None):
         super().__init__(root, transform, pre_transform, pre_filter)
-        
-        self.num_classes = 2
 
     @property
-    # Return a list of raw, unprocessed file names
+    # If you directly return the names of the files, the '.' will be in /data/bsc/raw
+    # If you return os.listdir, the '.' will be where "Dataset.py" is
     def raw_file_names(self):
-        return [
-            './ERA5_test_0.nc', './ERA5_test_1.nc', './ERA5_test_2.nc',
-            './ERA5_test_3.nc', './ERA5_test_4.nc', './ERA5_test_5.nc',
-            './ERA5_test_6.nc', './ERA5_test_7.nc', './ERA5_test_8.nc',
-            './ERA5_test_9.nc'
-        ]
+        return os.listdir('./data/bsc/raw')
+        #['./ERA5_test.nc']
 
     @property
     # Return a list of files in the processed/ folder.
@@ -29,11 +24,9 @@ class PilotDataset(Dataset):
     # If these files exist, process() will be skipped.
     # After process(), the returned list should have the only processed data file name
     def processed_file_names(self):
-        return [
-            'data_0.pt', 'data_1.pt', 'data_2.pt', 'data_3.pt', 'data_4.pt',
-            'data_5.pt', 'data_6.pt', 'data_7.pt', 'data_8.pt', 'data_9.pt'
-        ]
-
+        return os.listdir('./data/bsc/processed')
+        #['ERA5_test_ibtracs_int_0.pt']
+    
     # Process raw data and save it into the processed/
     # This function is triggered as soon as the PilotDataset is instantiated
     def process(self):
@@ -41,10 +34,11 @@ class PilotDataset(Dataset):
         # Conserving adjacency info to avoid computing it every time
         edge_index = None
 
-        idx = 0
+        cyclone = 1
         for raw_path in self.raw_paths:
 
-            print(f'Chunk number {idx}...')
+            year = raw_path.split('_')[1]
+            print(f'    Year {year}, Patch number {cyclone}...')
             raw_data = xr.open_dataset(raw_path)    # TODO verify if passing the data is sub-optimal
 
             # Get node features
@@ -67,8 +61,8 @@ class PilotDataset(Dataset):
                 y=labels,                           # labels for classification
             )
 
-            torch.save(data, os.path.join(self.processed_dir, f'data_{idx}.pt'))
-            idx += 1
+            torch.save(data, os.path.join(self.processed_dir, f'year_{year}_cyclone_{cyclone}.pt'))
+            cyclone += 1
 
     # This will return a matrix with shape=[num_nodes, num_node_features]
     #   nodes: the geographic locations
@@ -80,7 +74,7 @@ class PilotDataset(Dataset):
         # Extract the list of ERA5 variables
         ERA5_vars = []
         for key in data.data_vars:
-            if key!='ibtracs':      # TODO: check the variable name in the final dataset
+            if key!='Ymsk':   # TODO: check the variable name in the final dataset
                 ERA5_vars.append(data.data_vars[key].values)   # TODO: talk with cmcc guys to understand if they treat this in some way 
 
         # The order of nodes is implicit in how I perform these lon/lat loops
@@ -93,7 +87,7 @@ class PilotDataset(Dataset):
                 
                 all_nodes_feats.append(node_feats)
 
-        print("   Shape of node feature matrix:", np.shape(all_nodes_feats))
+        print("        Shape of node feature matrix:", np.shape(all_nodes_feats))
         all_nodes_feats = np.asarray(all_nodes_feats)
         return torch.tensor(all_nodes_feats, dtype=torch.float)
     
@@ -137,21 +131,23 @@ class PilotDataset(Dataset):
         N_nodes = data_mesh.spatial_subset.size
         adj_matrix = np.zeros((N_nodes, N_nodes), dtype=bool)   # TODO: too big in RAM, an adjacency list should be much more efficient
         '''
-        print("   Shape of graph connectivity in COO format:", np.shape(coo_links))
+        print("        Shape of graph connectivity in COO format:", np.shape(coo_links))
         return torch.tensor(coo_links, dtype=torch.long)
 
     # Here we're gonna put the ibtracs data to classify the nodes
+    # TODO: I'm casting to int() and long, but I may need something else
     def _get_labels(self, data):
         
         labels = []
-        tmp_ibtracs = data.ibtracs.values
+        tmp_ibtracs = data.Ymsk.values
+        time = 0
         
         for lon in range(data.lon.size):
             for lat in range(data.lat.size):
-                labels.append(tmp_ibtracs[lat, lon])
+                labels.append(int(tmp_ibtracs[lat, lon, time]))
         
-        print("   Shape of labels:", np.shape(labels))
-        return torch.tensor(labels, dtype=torch.float)
+        print("        Shape of labels:", np.shape(labels))
+        return torch.tensor(labels, dtype=torch.long)
 
 
     # Download the raw data into raw/, or the folder specified in self.raw_dir
@@ -163,6 +159,6 @@ class PilotDataset(Dataset):
         return len(self.processed_file_names)
     
     # Implements the logic to load a single graph
-    def get(self, idx):
-        data = torch.load(os.path.join(self.processed_dir, f'data_{idx}.pt'))
+    def get(self, year, cyclone):
+        data = torch.load(os.path.join(self.processed_dir, f'year_{year}_cyclone_{cyclone}.pt'))
         return data
