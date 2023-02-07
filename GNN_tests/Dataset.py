@@ -5,6 +5,9 @@ from torch_geometric.data import Data
 from torch_geometric.data import Dataset
 import xarray as xr
 
+# Global variables
+num_classes = 2
+
 class PilotDataset(Dataset):
 
     # root: Where the dataset should be stored and divided into processed/ and raw/
