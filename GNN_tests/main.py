@@ -1,7 +1,6 @@
 # %%
 import torch
 import torch_geometric
-import torch.nn.functional as F
 from torch_geometric.loader import DataLoader
 
 import Dataset
@@ -25,11 +24,25 @@ dataset.get(1983, 1)
 # "batch_size" specifies how many grids will be saved in a single batch
 # If "shuffle=True", the data will be reshuffled at every epoch
 #dataset = dataset.shuffle()
-train_loader = DataLoader(dataset[:8], batch_size=1, shuffle=True)
-test_loader = DataLoader(dataset[8:], batch_size=1, shuffle=False)
+dataset_size = dataset.len() -2     # remove pre_filter.pt and pre_transform.pt
+train_set = []
+test_set = []
+for c in range(20):#dataset_size):  # just 20 patches to see if it works
+    train_set.append(dataset.get(1983, c+1))
+
+for c in range(20, 25):
+    test_set.append(dataset.get(1983, c+1))
+
+train_loader = DataLoader(train_set, batch_size=1, shuffle=True)
+test_loader = DataLoader(test_set, batch_size=5, shuffle=False)
 
 # Print the batches
+print("Train batches:")
 for batch in train_loader:
+    print(batch)
+
+print("Test batches:")
+for batch in test_loader:
     print(batch)
 
 # %%
@@ -37,31 +50,27 @@ device = torch.device('cpu')#'cuda' if torch.cuda.is_available() else 'cpu')
 device
 
 # %% cora.py example on PyG repository
+'''
 model = Model.GCN(
-    in_channels = dataset.num_features,
+    in_channels = 7,
     hidden_channels = 16,
     out_channels = 2
 ).to(device)
-model.cpu
-
-#x = torch.randn(100, 7)
-#edge_index = torch.randint(100, size=(2, 20))
-#print(summary(model, x, edge_index))
-
-# %%
-data = dataset[0].to(device)
-optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
-
-def train():
-    model.train()
-    optimizer.zero_grad()
-    F.nll_loss(model(data), data.y).backward()
-    optimizer.step()
-
-train()
+print(model.cpu)
+data = train_loader.dataset[0].to(device)
+print(data)
+print(summary.summary(model, data.x, data.edge_index))
+'''
 
 # %% Example at ppi.py in PyG repository
-loss_op = torch.nn.BCEWithLogitsLoss()
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+model = Model.GCN(
+    in_channels = 7,
+    hidden_channels = 16,
+    out_channels = 2
+).to(device)
+
+loss_op = torch.nn.functional.nll_loss#torch.nn.BCEWithLogitsLoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=0.005)
 
 def train():
@@ -77,5 +86,9 @@ def train():
         optimizer.step()
     return total_loss / len(train_loader.dataset)
 
-train()
-
+loss = train()
+print(loss)
+# During the creation of train_loader:
+#   batch_size=1 leads to a loss of 64.45. Then 20626.77. Then 1203.
+#   batch_size=10 leads to a loss of 31.14. Then 228.81. It doesn't seem to depend by the shuffle option
+# %%
