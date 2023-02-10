@@ -1,12 +1,10 @@
 import numpy as np
 import os
+from sklearn.preprocessing import MinMaxScaler
 import torch
 from torch_geometric.data import Data
 from torch_geometric.data import Dataset
 import xarray as xr
-
-# Global variables
-num_classes = 2
 
 class PilotDataset(Dataset):
 
@@ -42,7 +40,7 @@ class PilotDataset(Dataset):
 
             year = raw_path.split('_')[1]
             print(f'    Year {year}, Patch number {cyclone}...')
-            raw_data = xr.open_dataset(raw_path)    # TODO verify if passing the data is sub-optimal
+            raw_data = xr.open_dataset(raw_path)
 
             # Get node features
             node_feats = self._get_node_features(raw_data)
@@ -74,6 +72,15 @@ class PilotDataset(Dataset):
 
         all_nodes_feats =[]
 
+        # Remove dimension with length=1, which is "time"
+        data = data.squeeze()
+
+        # First, normalize the features
+        for key in data.data_vars:
+            scaler = MinMaxScaler()     # default range: [0, 1]
+            scaler.fit(data[key].values)
+            data[key].values = scaler.transform(data[key].values)
+
         # Extract the list of ERA5 variables
         ERA5_vars = []
         for key in data.data_vars:
@@ -85,7 +92,7 @@ class PilotDataset(Dataset):
             for lat in range(data.lat.size):
                 node_feats = []
                 for variable in ERA5_vars:
-                    node_feats.append(variable[0, lat, lon])     # 0 is the timestamp
+                    node_feats.append(variable[lat, lon])     # 0 is the timestamp
                     # too slow alternative: .append(float(data.msl.isel(time=0, lat=lat, lon=lon).values))
                 
                 all_nodes_feats.append(node_feats)
@@ -147,7 +154,7 @@ class PilotDataset(Dataset):
         
         for lon in range(data.lon.size):
             for lat in range(data.lat.size):
-                labels.append(int(tmp_ibtracs[lat, lon, time]))
+                labels.append(int(tmp_ibtracs[lat, lon]))
         
         print("        Shape of labels:", np.shape(labels))
         return torch.tensor(labels, dtype=torch.long)
