@@ -39,6 +39,8 @@ class PilotDataset(Dataset):
         for raw_path in self.raw_paths:
 
             year = raw_path.split('_')[1]
+            # TODO: potrei prendere il cyclone id dal path anzichè il counter del loop
+            # per salvare il numero del ciclone
             print(f'    Year {year}, Patch number {cyclone}...')
             raw_data = xr.open_dataset(raw_path)
 
@@ -150,14 +152,13 @@ class PilotDataset(Dataset):
         
         labels = []
         tmp_ibtracs = data.Ymsk.values
-        time = 0
         
         for lon in range(data.lon.size):
             for lat in range(data.lat.size):
                 labels.append(int(tmp_ibtracs[lat, lon]))
         
         print("        Shape of labels:", np.shape(labels))
-        return torch.tensor(labels, dtype=torch.long)
+        return torch.tensor(labels, dtype=torch.float)
 
 
     # Download the raw data into raw/, or the folder specified in self.raw_dir
