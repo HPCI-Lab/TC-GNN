@@ -1,5 +1,4 @@
 import torch
-from torch import Tensor
 import torch.nn.functional as F
 from torch_geometric.nn import GCNConv
 from torch_geometric.nn import GraphUNet
@@ -9,10 +8,11 @@ from torch_geometric.utils import dropout_edge
 class GCNet(torch.nn.Module):
     def __init__(self, in_channels, hidden_channels, out_channels, data):
         super().__init__()
-
         self.conv1 = GCNConv(in_channels, hidden_channels)
         self.conv2 = GCNConv(hidden_channels, out_channels)
 
+    # This is called 20 times for a train() call.
+    # Called once for a test() if _test_batch_size=5, called 5 times if _test_batch_size=1
     def forward(self, data):
         x, edge_index = data.x, data.edge_index
 
@@ -28,6 +28,7 @@ class GUNet(torch.nn.Module):
     def __init__(self, in_channels, hidden_channels, out_channels, data):
         super().__init__()
 
+        self.activation = torch.nn.Sigmoid()
         pool_ratios = [2000 / data.num_nodes, 0.5]
         self.unet = GraphUNet(in_channels, hidden_channels, out_channels,
                               depth=3, pool_ratios=pool_ratios)
@@ -40,5 +41,5 @@ class GUNet(torch.nn.Module):
         x = F.dropout(data.x, p=0.92, training=self.training)
         x = self.unet(x, edge_index)
 
-        return F.log_softmax(x, dim=1)
+        return x#self.activation(x)#torch.sigmoid(x)#F.log_softmax(x, dim=1)
 
