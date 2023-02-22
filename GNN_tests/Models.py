@@ -28,7 +28,7 @@ class GUNet(torch.nn.Module):
     def __init__(self, in_channels, hidden_channels, out_channels, data):
         super().__init__()
 
-        self.activation = torch.nn.Sigmoid()
+        #self.activation = 
         pool_ratios = [2000 / data.num_nodes, 0.5]
         self.unet = GraphUNet(in_channels, hidden_channels, out_channels,
                               depth=3, pool_ratios=pool_ratios)
@@ -41,5 +41,8 @@ class GUNet(torch.nn.Module):
         x = F.dropout(data.x, p=0.92, training=self.training)
         x = self.unet(x, edge_index)
 
-        return x#self.activation(x)#torch.sigmoid(x)#F.log_softmax(x, dim=1)
+        return x
+        #return torch.nn.Sigmoid(x)
+        #return torch.sigmoid(x)
+        #return F.log_softmax(x, dim=1)     # original version
 

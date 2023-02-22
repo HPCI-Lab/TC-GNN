@@ -178,7 +178,7 @@ def visual():
     model.eval()
 
     ys, preds = [], []
-    for batch in test_loader:
+    for batch in test_loader:   # assuming there's only 1 batch
         ys.append(batch.y)
         batch = batch.to(device)
 
@@ -186,28 +186,37 @@ def visual():
         outputs = outputs.squeeze()
         preds.append((outputs > 0).float().cpu())   # "> 0" mette a bool
         
-        mat_pred = np.zeros(shape=(40, 40))
-        mat_target = np.zeros(shape=(40, 40))
+        # Preparing the plot
+        fig, axs = plt.subplots(ncols=2, nrows=5, figsize=(6, 12))
+        fig.suptitle('Test batch(5)', fontsize=12, y=0.95)
+        row = 0
 
-        patch_id = 0
-        index = 0+1600*patch_id
-        for lon in range(40):
-            for lat in range(40):
-                mat_pred[lat, lon] = outputs[index].item()
-                mat_target[lat, lon] = batch.y[index].item()
-                index += 1
+        # Iterate over the patch in the batch
+        for patch_id in range(len(test_loader.dataset)):
 
-        fig, axs = plt.subplots(2, 1, figsize=(6, 6))
-        ax0 = axs[0].matshow(mat_pred)
-        ax1 = axs[1].matshow(mat_target)
-        fig.colorbar(ax0)
-        fig.colorbar(ax1)
-        plt.show()
+            # Allocate the empty prediction and target matrices
+            mat_pred = np.zeros(shape=(40, 40))
+            mat_target = np.zeros(shape=(40, 40))
+
+            # Put the data inside
+            index = 0+1600*patch_id
+            for lon in range(40):
+                for lat in range(40):
+                    mat_pred[lat, lon] = outputs[index].item()
+                    mat_target[lat, lon] = batch.y[index].item()
+                    index += 1
+
+            ax_pred = axs[row, 0].matshow(mat_pred)
+            ax_target = axs[row, 1].matshow(mat_target)
+            row += 1
+            fig.colorbar(ax_pred, orientation='vertical')#, location='top', )
+            fig.colorbar(ax_target, orientation='vertical')#location='top', )
+            
+        plt.subplots_adjust(hspace=0.3, wspace=0.3)
+        plt.show()    
         #print(test_set[0].y, '\t', np.shape(test_set[0].y))
         print("Pred:\t", outputs[:], '\n\t', np.shape(outputs[:]))
         print("Target:\t", batch.y[:], '\n\t', np.shape(batch.y[:]))
-
-        #y, pred = torch.cat(ys, dim=0).numpy(), torch.cat(preds, dim=0).numpy()
 
 visual()
 
@@ -222,6 +231,7 @@ visual()
 
 # %%
 # Test from here: https://pytorch.org/tutorials/beginner/basics/optimization_tutorial.html#full-implementation
+'''
 @torch.no_grad()
 def my_test(loader):
     num_samples = len(loader.dataset)
@@ -241,3 +251,4 @@ def my_test(loader):
     print(f"Test Error: \n Accuracy: {(100*correct):>0.1f}%, Avg loss: {test_loss:>8f} \n")
 
 my_test(test_loader)        
+'''
