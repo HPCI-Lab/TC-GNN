@@ -1,3 +1,5 @@
+import math
+import matplotlib.pyplot as plt
 import numpy as np
 import os
 from sklearn.preprocessing import MinMaxScaler
@@ -5,6 +7,8 @@ import torch
 from torch_geometric.data import Data
 from torch_geometric.data import Dataset
 import xarray as xr
+
+from utils import time_func
 
 class PilotDataset(Dataset):
 
@@ -69,19 +73,23 @@ class PilotDataset(Dataset):
 
     # This will return a matrix with shape=[num_nodes, num_node_features]
     #   nodes: the geographic locations
-    #   features: the ERA5 variables
+    #   features: the ERA5 variables + the distance from the cyclone for each cell
     def _get_node_features(self, data):
 
         all_nodes_feats =[]
 
         # Remove dimension with length=1, which is "time"
+        #data = xr.open_dataset('data/bsc/raw/year_1983_cyclone_111.nc')
         data = data.squeeze()
 
         # First, normalize the features
+        '''
         for key in data.data_vars:
-            scaler = MinMaxScaler()     # default range: [0, 1]
-            scaler.fit(data[key].values)
-            data[key].values = scaler.transform(data[key].values)
+            if key!='Ymsk':
+                scaler = MinMaxScaler()     # default range: [0, 1]
+                scaler.fit(data[key].values)
+                data[key].values = scaler.transform(data[key].values)
+        '''
 
         # Extract the list of ERA5 variables
         ERA5_vars = []
@@ -89,20 +97,52 @@ class PilotDataset(Dataset):
             if key!='Ymsk':   # TODO: check the variable name in the final dataset
                 ERA5_vars.append(data.data_vars[key].values)   # TODO: talk with cmcc guys to understand if they treat this in some way 
 
+        # Calculate for each cell the distance from the cyclone cell
+        #mat_dist = self._get_dist_matrix(data)
+
         # The order of nodes is implicit in how I perform these lon/lat loops
         for lon in range(data.lon.size):
             for lat in range(data.lat.size):
                 node_feats = []
                 for variable in ERA5_vars:
-                    node_feats.append(variable[lat, lon])     # 0 is the timestamp
+                    node_feats.append(variable[lat, lon])
                     # too slow alternative: .append(float(data.msl.isel(time=0, lat=lat, lon=lon).values))
                 
+                #node_feats.append(mat_dist[lat, lon])
                 all_nodes_feats.append(node_feats)
 
         print("        Shape of node feature matrix:", np.shape(all_nodes_feats))
         all_nodes_feats = np.asarray(all_nodes_feats)
         return torch.tensor(all_nodes_feats, dtype=torch.float)
     
+    # Return the cyclone distance matrix
+    def _get_dist_matrix(self, data):
+        tmp_ibtracs = data.Ymsk.values
+        mat_dist = np.zeros(shape=(40, 40))
+
+        # Find the cyclone cell
+        row, col = None, None
+        for lon in range(data.lon.size):
+            for lat in range(data.lat.size):
+                if tmp_ibtracs[lat, lon]==1:
+                    #print("Found: ", lat, lon)
+                    row, col = lat, lon
+
+        # Assign the Euclidean distances
+        for lon in range(data.lon.size):
+            for lat in range(data.lat.size):
+                mat_dist[lat, lon] = math.dist([lat, lon], [row, col])
+
+        # Normalize the distances in [0, 1] like the features TODO something's wrong here
+        '''
+        scaler = MinMaxScaler()
+        scaler.fit(mat_dist)
+        mat_dist = scaler.transform(mat_dist)
+        '''
+
+        return mat_dist
+
+
     # We won't need this, since the edges are only useful to connect the spatial locations
     def _get_edge_features(self, data):
         all_edge_feats = []
@@ -149,7 +189,6 @@ class PilotDataset(Dataset):
     # Here we're gonna put the ibtracs data to classify the nodes
     # TODO: I'm casting to int() and long, but I may need something else
     def _get_labels(self, data):
-        
         labels = []
         tmp_ibtracs = data.Ymsk.values
         
