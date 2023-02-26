@@ -2,6 +2,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.metrics import f1_score
+from sklearn.preprocessing import MinMaxScaler
 import torch
 import torch_geometric
 from torch_geometric.loader import DataLoader
@@ -38,25 +39,41 @@ dataset.get(1983, 1)
 # If "shuffle=True", the data will be reshuffled at every epoch
 #dataset = dataset.shuffle()
 
-dataset_size = dataset.len() -2     # remove pre_filter.pt and pre_transform.pt
+dataset_size = dataset.len() -2     # remove /processed/pre_filter.pt and /processed/pre_transform.pt
 train_set = []
 test_set = []
 valid_set = []
 
+# Feature normalization. Fit the training and tranform training, test and validation
+scaler = MinMaxScaler()     # default range: [0, 1]
+
+# Fit the scaler to the training set, one piece at a time
 for c in range(20):#dataset_size):  # just 20 patches to see if it works
-    train_set.append(dataset.get(1983, c+1))
+    patch = dataset.get(1983, c+1)
+    scaler.partial_fit(patch.x)
+    train_set.append(patch)
 
-for c in range(20, 25):
-    test_set.append(dataset.get(1983, c+1))
+# Normalize training, test and valaidation sets with the obtained values
+for i in range(len(train_set)):
+    patch = train_set[i]
+    patch.x = torch.tensor(scaler.transform(patch.x), dtype=torch.float)
+    train_set[i] = patch
 
-for c in range(25, 30):
-    valid_set.append(dataset.get(1983, c+1))
+for c in range(100, 105):
+    patch = dataset.get(1983, c+1)
+    patch.x = torch.tensor(scaler.transform(patch.x), dtype=torch.float)
+    test_set.append(patch)
+
+for c in range(105, 110):
+    patch = dataset.get(1983, c+1)
+    patch.x = torch.tensor(scaler.transform(patch.x), dtype=torch.float)
+    valid_set.append(patch)
 
 train_loader = DataLoader(train_set, batch_size=_train_batch_size, shuffle=True)
 test_loader = DataLoader(test_set, batch_size=_test_batch_size, shuffle=False)
 valid_loader = DataLoader(valid_set, batch_size=_valid_batch_size, shuffle=False)
 
-# Print the batches
+# Print the batches and create an element with all its features
 print("\tTrain batches:")
 for batch in train_loader:
     print(batch)
@@ -73,7 +90,7 @@ device = torch.device('cpu')#'cuda' if torch.cuda.is_available() else 'cpu')
 
 _num_features = train_loader.dataset[0].num_features
 
-# %% Example at ppi.py in PyG repository
+# %% Model instantiation and summary
 if _model_name == "GCNet":
     Model = Models.GCNet
 elif _model_name == "GUNet":
@@ -91,7 +108,7 @@ print(f"\tdummy input: {train_loader.dataset[0]}")
 print(summary.summary(model, train_loader.dataset[0]))
 
 # %%
-loss_op = torch.nn.CrossEntropyLoss()#torch.nn.functional.nll_loss#torch.nn.BCEWithLogitsLoss()
+loss_op = torch.nn.CrossEntropyLoss()#torch.nn.BCEWithLogitsLoss()#torch.nn.functional.nll_loss
 optimizer = torch.optim.Adam(model.parameters(), lr=0.005)
 
 def train():
@@ -154,7 +171,7 @@ print(f1_res)
 # %% Everything together
 timestamp = time_func.start_time()
 
-for epoch in range(50):
+for epoch in range(100):
     loss = train()
     valid_f1 = test(valid_loader)
     print(f'Epoch: {epoch+1:03d}, Loss: {loss:.4f}, Val: {valid_f1:.4f}')
