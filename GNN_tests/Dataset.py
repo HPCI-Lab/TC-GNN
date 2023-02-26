@@ -98,7 +98,7 @@ class PilotDataset(Dataset):
                 ERA5_vars.append(data.data_vars[key].values)   # TODO: talk with cmcc guys to understand if they treat this in some way 
 
         # Calculate for each cell the distance from the cyclone cell
-        #mat_dist = self._get_dist_matrix(data)
+        mat_dist = self._get_dist_matrix(data)
 
         # The order of nodes is implicit in how I perform these lon/lat loops
         for lon in range(data.lon.size):
@@ -108,7 +108,7 @@ class PilotDataset(Dataset):
                     node_feats.append(variable[lat, lon])
                     # too slow alternative: .append(float(data.msl.isel(time=0, lat=lat, lon=lon).values))
                 
-                #node_feats.append(mat_dist[lat, lon])
+                node_feats.append(mat_dist[lat, lon])
                 all_nodes_feats.append(node_feats)
 
         print("        Shape of node feature matrix:", np.shape(all_nodes_feats))

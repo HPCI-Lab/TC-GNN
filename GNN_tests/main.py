@@ -186,9 +186,6 @@ print(f'Test F1: {test_f1:.4f}')
 
 
 
-
-
-
 # %% 
 @torch.no_grad()
 def visual():

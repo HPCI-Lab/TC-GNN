@@ -21,7 +21,7 @@ class GCNet(torch.nn.Module):
         x = F.dropout(x, training=self.training)
         x = self.conv2(x, edge_index)
 
-        return F.log_softmax(x, dim=1)
+        return torch.sigmoid(x)#F.log_softmax(x, dim=1)
         
 
 class GUNet(torch.nn.Module):
@@ -41,8 +41,8 @@ class GUNet(torch.nn.Module):
         x = F.dropout(data.x, p=0.92, training=self.training)
         x = self.unet(x, edge_index)
 
-        return x
+        return torch.sigmoid(x)
         #return torch.nn.Sigmoid(x)
-        #return torch.sigmoid(x)
+        #return x
         #return F.log_softmax(x, dim=1)     # original version
 
