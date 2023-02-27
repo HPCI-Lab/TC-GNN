@@ -1,4 +1,5 @@
 # %%
+# Imports + Global settings
 import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.metrics import f1_score
@@ -24,7 +25,8 @@ _train_batch_size = 5   # TODO see how the results change if you change this
 _test_batch_size = 5
 _valid_batch_size = 5
 
-# %% Creating the dataset
+# %%
+# Dataset creation
 timestamp = time_func.start_time()
 dataset = Dataset.PilotDataset(root='./data/bsc')#'./data/cmcc_structured')
 time_func.stop_time(timestamp, "Dataset creation")
@@ -33,10 +35,13 @@ time_func.stop_time(timestamp, "Dataset creation")
 dataset.get(year=1983, cyclone=1).is_directed()
 dataset.get(1983, 1)
 
-# %% The Dataloader allows to feed data by batch into the model to exploit parallelism
+# %%
+# Data loader set up + Feature normalization
+# The Dataloader allows to feed data by batch into the model to exploit parallelism
 # The "batch" information is used by the GNN model to tell which nodes belong to which graph
 # "batch_size" specifies how many grids will be saved in a single batch
-# If "shuffle=True", the data will be reshuffled at every epoch
+# TODO: If "shuffle=True", the data will be reshuffled at every epoch. understand
+# if this means that you may potentially train over the same patch/batch over and over
 #dataset = dataset.shuffle()
 
 dataset_size = dataset.len() -2     # remove /processed/pre_filter.pt and /processed/pre_transform.pt
@@ -90,7 +95,8 @@ device = torch.device('cpu')#'cuda' if torch.cuda.is_available() else 'cpu')
 
 _num_features = train_loader.dataset[0].num_features
 
-# %% Model instantiation and summary
+# %%
+# Model instantiation and summary
 if _model_name == "GCNet":
     Model = Models.GCNet
 elif _model_name == "GUNet":
@@ -107,7 +113,8 @@ print("\nSummary of NN:")
 print(f"\tdummy input: {train_loader.dataset[0]}")
 print(summary.summary(model, train_loader.dataset[0]))
 
-# %% train()
+# %%
+# train()
 loss_op = torch.nn.CrossEntropyLoss()#torch.nn.BCEWithLogitsLoss()#torch.nn.functional.nll_loss
 optimizer = torch.optim.Adam(model.parameters(), lr=0.005)
 
@@ -139,7 +146,8 @@ def train():
 loss = train()
 print(loss)
 
-# %% Evaluate()
+# %%
+# Evaluate()
 # torch.no_grad() as decorator is useful because I'm validating/testing, so not calling 
 # the backward(). Mouse on it and read the doc
 @torch.no_grad()
@@ -167,25 +175,39 @@ def evaluate(loader):
 loss = evaluate(test_loader)
 print(loss)
 
-# %% Epoch training, validation and testing
+# %%
+# Epoch training, validation and testing
 timestamp = time_func.start_time()
 
+train_loss = []
+valid_loss = []
+
 for epoch in range(100):
-    loss = train()
-    valid_f1 = evaluate(valid_loader)
-    print(f'Epoch: {epoch+1:03d}, Train loss: {loss:.4f}, Val loss: {valid_f1:.4f}')
+    t_loss = train()
+    v_loss = evaluate(valid_loader)
+    print(f'Epoch: {epoch+1:03d}, Train loss: {t_loss:.4f}, Val loss: {v_loss:.4f}')
+    train_loss.append(t_loss)
+    valid_loss.append(v_loss)
 
 time_func.stop_time(timestamp, "Training Complete!")
 
 metric = evaluate(test_loader)
 print(f'Metric for test: {metric:.4f}')
 
+# %%
+# Plot train and validation losses
+plt.figure(figsize=(8, 4))
+plt.plot(train_loss, label='Train loss')
+plt.plot(valid_loss, label='Validation loss')
+plt.legend()
+plt.show()
 
 
 
 
 
 # %% 
+# Visualization of test batch truth against predictions
 @torch.no_grad()
 def visual():
     model.eval()
