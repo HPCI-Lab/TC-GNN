@@ -107,7 +107,7 @@ print("\nSummary of NN:")
 print(f"\tdummy input: {train_loader.dataset[0]}")
 print(summary.summary(model, train_loader.dataset[0]))
 
-# %%
+# %% train()
 loss_op = torch.nn.CrossEntropyLoss()#torch.nn.BCEWithLogitsLoss()#torch.nn.functional.nll_loss
 optimizer = torch.optim.Adam(model.parameters(), lr=0.005)
 
@@ -124,9 +124,7 @@ def train():
         # forward + loss
         pred = model(batch)
         pred = pred.squeeze()
-        #print(np.shape(pred))
-        #print(np.shape(batch.y))
-        loss = loss_op(pred, batch.y)
+        loss = loss_op(pred, batch.y)   # both [8000] in size
 
         # backward + optimize
         # loss * _train_batch_size(5)
@@ -141,45 +139,46 @@ def train():
 loss = train()
 print(loss)
 
-# %% 
-# torch.no_grad() as decorator is useful because I'm testing, so not calling 
+# %% Evaluate()
+# torch.no_grad() as decorator is useful because I'm validating/testing, so not calling 
 # the backward(). Mouse on it and read the doc
 @torch.no_grad()
-def test(loader):
+def evaluate(loader):
     model.eval()
+    total_loss = 0
 
-    ys, preds = [], []
     for batch in loader:
-        ys.append(batch.y)
         batch = batch.to(device)
 
         outputs = model(batch)  # shape: [8000, 1]
         outputs = outputs.squeeze()
-        #print(np.shape(outputs))
-        preds.append((outputs > 0).float().cpu())   # "> 0" mette a bool
 
-    y, pred = torch.cat(ys, dim=0).numpy(), torch.cat(preds, dim=0).numpy()
+        loss = loss_op(outputs, batch.y)
+        total_loss += loss.item() * batch.num_graphs
+        #print(np.shape(outputs))
+
     #print(np.shape(ys[1]))
-    #print(pred)
     #print(outputs.sum())
     #print(pred.sum())
-    return f1_score(y, pred, average='micro') if pred.sum() > 0 else 0
+    
+    total_loss = total_loss / len(loader.dataset)
+    return total_loss
 
-f1_res = test(test_loader)
-print(f1_res)
+loss = evaluate(test_loader)
+print(loss)
 
-# %% Everything together
+# %% Epoch training, validation and testing
 timestamp = time_func.start_time()
 
 for epoch in range(100):
     loss = train()
-    valid_f1 = test(valid_loader)
-    print(f'Epoch: {epoch+1:03d}, Loss: {loss:.4f}, Val: {valid_f1:.4f}')
+    valid_f1 = evaluate(valid_loader)
+    print(f'Epoch: {epoch+1:03d}, Train loss: {loss:.4f}, Val loss: {valid_f1:.4f}')
 
 time_func.stop_time(timestamp, "Training Complete!")
 
-test_f1 = test(test_loader)
-print(f'Test F1: {test_f1:.4f}')
+metric = evaluate(test_loader)
+print(f'Metric for test: {metric:.4f}')
 
 
 
@@ -243,7 +242,7 @@ visual()
 
 
 
-# %%
+
 # Test from here: https://pytorch.org/tutorials/beginner/basics/optimization_tutorial.html#full-implementation
 '''
 @torch.no_grad()
@@ -266,3 +265,4 @@ def my_test(loader):
 
 my_test(test_loader)        
 '''
+# %%
