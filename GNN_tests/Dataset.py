@@ -79,17 +79,7 @@ class PilotDataset(Dataset):
         all_nodes_feats =[]
 
         # Remove dimension with length=1, which is "time"
-        #data = xr.open_dataset('data/bsc/raw/year_1983_cyclone_111.nc')
         data = data.squeeze()
-
-        # First, normalize the features
-        '''
-        for key in data.data_vars:
-            if key!='Ymsk':
-                scaler = MinMaxScaler()     # default range: [0, 1]
-                scaler.fit(data[key].values)
-                data[key].values = scaler.transform(data[key].values)
-        '''
 
         # Extract the list of ERA5 variables
         ERA5_vars = []
@@ -108,7 +98,7 @@ class PilotDataset(Dataset):
                     node_feats.append(variable[lat, lon])
                     # too slow alternative: .append(float(data.msl.isel(time=0, lat=lat, lon=lon).values))
                 
-                node_feats.append(mat_dist[lat, lon])
+                #node_feats.append(mat_dist[lat, lon])
                 all_nodes_feats.append(node_feats)
 
         print("        Shape of node feature matrix:", np.shape(all_nodes_feats))
@@ -132,13 +122,6 @@ class PilotDataset(Dataset):
         for lon in range(data.lon.size):
             for lat in range(data.lat.size):
                 mat_dist[lat, lon] = math.dist([lat, lon], [row, col])
-
-        # Normalize the distances in [0, 1] like the features TODO something's wrong here
-        '''
-        scaler = MinMaxScaler()
-        scaler.fit(mat_dist)
-        mat_dist = scaler.transform(mat_dist)
-        '''
 
         return mat_dist
 
