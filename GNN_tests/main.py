@@ -21,7 +21,8 @@ _model_name = "GUNet"
 _num_features = None
 _hidden_channels = 32   # 16 for GCNet, 32 for GUNet(from the examples)
 _num_classes = 1
-_train_batch_size = 5   # TODO see how the results change if you change this
+_train_size = 100
+_train_batch_size = 10   # TODO see how the results change if you change this
 _test_batch_size = 5
 _valid_batch_size = 5
 
@@ -53,7 +54,7 @@ valid_set = []
 scaler = MinMaxScaler()     # default range: [0, 1]
 
 # Fit the scaler to the training set, one piece at a time
-for c in range(20):#dataset_size):  # just 20 patches to see if it works
+for c in range(_train_size):#dataset_size):  # just 20 patches to see if it works
     patch = dataset.get(1983, c+1)
     scaler.partial_fit(patch.x)
     train_set.append(patch)
@@ -95,6 +96,15 @@ device = torch.device('cpu')#'cuda' if torch.cuda.is_available() else 'cpu')
 
 _num_features = train_loader.dataset[0].num_features
 
+#%%
+# Tests with channels
+patch = train_loader.dataset[0]
+print(patch.x.is_contiguous(memory_format=torch.channels_last))
+print(patch.x.is_contiguous(memory_format=torch.contiguous_format))
+tmp = patch.x.unsqueeze(0)
+print(tmp.size())
+batch = next(iter(train_loader))
+
 # %%
 # Model instantiation and summary
 if _model_name == "GCNet":
@@ -114,8 +124,11 @@ print(f"\tdummy input: {train_loader.dataset[0]}")
 print(summary.summary(model, train_loader.dataset[0]))
 
 # %%
-# train()
-loss_op = torch.nn.CrossEntropyLoss()#torch.nn.BCEWithLogitsLoss()#torch.nn.functional.nll_loss
+# Loss + Optimizer + train()
+#loss_op = torch.nn.BCELoss()            # works best with _train_size=100, higher in general
+loss_op = torch.nn.CrossEntropyLoss()  # works best with _train_size=20, lower in general
+#loss_op = torch.nn.BCEWithLogitsLoss()
+#loss_op = torch.nn.functional.nll_loss
 optimizer = torch.optim.Adam(model.parameters(), lr=0.005)
 
 def train():
