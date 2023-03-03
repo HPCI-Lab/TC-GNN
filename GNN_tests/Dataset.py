@@ -162,10 +162,7 @@ class PilotDataset(Dataset):
                     coo_links[1].append(this_node-lat_size)
                 
                 this_node += 1
-        '''
-        N_nodes = data_mesh.spatial_subset.size
-        adj_matrix = np.zeros((N_nodes, N_nodes), dtype=bool)   # TODO: too big in RAM, an adjacency list should be much more efficient
-        '''
+
         print("        Shape of graph connectivity in COO format:", np.shape(coo_links))
         return torch.tensor(coo_links, dtype=torch.long)
 
