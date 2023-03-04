@@ -28,10 +28,17 @@ class GUNet(torch.nn.Module):
     def __init__(self, in_channels, hidden_channels, out_channels, data):
         super().__init__()
 
-        #self.activation = 
+        self.act_middle = torch.nn.functional.relu
+        self.act_final = torch.sigmoid
+        # activation = torch.nn.Linear(1, 1); activation(x)
+        # torch.sigmoid(x)
+        # torch.nn.Sigmoid(x)
+        # F.log_softmax(x, dim=1)     # original version
+
+
         pool_ratios = [2000 / data.num_nodes, 0.5]
         self.unet = GraphUNet(in_channels, hidden_channels, out_channels,
-                              depth=3, pool_ratios=pool_ratios)
+                              depth=3, pool_ratios=pool_ratios, act=self.act_middle)
         
     def forward(self, data):
         edge_index, _ = dropout_edge(data.edge_index, p=0.2,
@@ -41,8 +48,4 @@ class GUNet(torch.nn.Module):
         x = F.dropout(data.x, p=0.92, training=self.training)
         x = self.unet(x, edge_index)
 
-        return torch.sigmoid(x)
-        #return torch.nn.Sigmoid(x)
-        #return x
-        #return F.log_softmax(x, dim=1)     # original version
-
+        return self.act_final(x)

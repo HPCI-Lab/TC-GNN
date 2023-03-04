@@ -75,10 +75,10 @@ for c in range(105, 110):
     patch.x = torch.tensor(scaler.transform(patch.x), dtype=torch.float)
     valid_set.append(patch)
 
-train_loader = DataLoader(train_set, batch_size=_train_batch_size, shuffle=True)
+train_loader = DataLoader(train_set, batch_size=_train_batch_size, shuffle=True)#, batch_sampler=None)
 test_loader = DataLoader(test_set, batch_size=_test_batch_size, shuffle=False)
 valid_loader = DataLoader(valid_set, batch_size=_valid_batch_size, shuffle=False)
-
+''' # Cannot print in this way if I use _train_batch_size=None
 # Print the batches and create an element with all its features
 print("\tTrain batches:")
 for batch in train_loader:
@@ -91,7 +91,7 @@ for batch in test_loader:
 print("\tValidation batches:")
 for batch in valid_loader:
     print(batch)
-
+'''
 device = torch.device('cpu')#'cuda' if torch.cuda.is_available() else 'cpu')
 
 _num_features = train_loader.dataset[0].num_features
@@ -125,10 +125,13 @@ print(summary.summary(model, train_loader.dataset[0]))
 
 # %%
 # Loss + Optimizer + train()
-#loss_op = torch.nn.BCELoss()            # works best with _train_size=100, higher in general
-loss_op = torch.nn.CrossEntropyLoss()  # works best with _train_size=20, lower in general
+loss_op = torch.nn.BCELoss()            # works best with _train_size=100, higher in general
+#loss_op = torch.nn.CrossEntropyLoss()  # works best with _train_size=20, lower in general
 #loss_op = torch.nn.BCEWithLogitsLoss()
 #loss_op = torch.nn.functional.nll_loss
+from dice import dice_score
+#loss_op = dice_score
+
 optimizer = torch.optim.Adam(model.parameters(), lr=0.005)
 
 def train():
@@ -144,7 +147,11 @@ def train():
         # forward + loss
         pred = model(batch)
         pred = pred.squeeze()
+        #print(pred)
+        #print(batch.y)
         loss = loss_op(pred, batch.y)   # both [8000] in size
+        loss.requires_grad = True
+        #loss = torch.tensor(loss.item(), requires_grad=True)
 
         # backward + optimize
         # loss * _train_batch_size(5)
@@ -176,9 +183,7 @@ def evaluate(loader):
 
         loss = loss_op(outputs, batch.y)
         total_loss += loss.item() * batch.num_graphs
-        #print(np.shape(outputs))
 
-    #print(np.shape(ys[1]))
     #print(outputs.sum())
     #print(pred.sum())
     
@@ -214,10 +219,6 @@ plt.plot(train_loss, label='Train loss')
 plt.plot(valid_loss, label='Validation loss')
 plt.legend()
 plt.show()
-
-
-
-
 
 # %% 
 # Visualization of test batch truth against predictions
@@ -268,16 +269,7 @@ def visual():
 
 visual()
 
-
-
-
-
-
-
-
-
-
-
+#%%
 # Test from here: https://pytorch.org/tutorials/beginner/basics/optimization_tutorial.html#full-implementation
 '''
 @torch.no_grad()
