@@ -125,13 +125,20 @@ print(summary.summary(model, train_loader.dataset[0]))
 
 # %%
 # Loss + Optimizer + train()
-loss_op = torch.nn.BCELoss()            # works best with _train_size=100, higher in general
+
+# Classification losses
+#loss_op = torch.nn.BCELoss()            # works best with _train_size=100, higher in general
 #loss_op = torch.nn.CrossEntropyLoss()  # works best with _train_size=20, lower in general
 #loss_op = torch.nn.BCEWithLogitsLoss()
 #loss_op = torch.nn.functional.nll_loss
 from dice import dice_score
 #loss_op = dice_score
 
+# Regression losses
+loss_op = torch.nn.L1Loss()
+#loss_op = torch.nn.MSELoss()
+
+print(f"Loss created!\n\tIn use: {loss_op}")
 optimizer = torch.optim.Adam(model.parameters(), lr=0.005)
 
 def train():
@@ -150,7 +157,9 @@ def train():
         #print(pred)
         #print(batch.y)
         loss = loss_op(pred, batch.y)   # both [8000] in size
-        loss.requires_grad = True
+        
+        # If you try the Soft Dice Score, use this(even if the loss stays constant)
+        #loss.requires_grad = True
         #loss = torch.tensor(loss.item(), requires_grad=True)
 
         # backward + optimize
@@ -226,14 +235,11 @@ plt.show()
 def visual():
     model.eval()
 
-    ys, preds = [], []
     for batch in test_loader:   # assuming there's only 1 batch
-        ys.append(batch.y)
         batch = batch.to(device)
 
         outputs = model(batch)  # shape: [8000, 1]
         outputs = outputs.squeeze()
-        preds.append((outputs > 0).float().cpu())   # "> 0" mette a bool
         
         # Preparing the plot
         fig, axs = plt.subplots(ncols=2, nrows=5, figsize=(6, 12))
