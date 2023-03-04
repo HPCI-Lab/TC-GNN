@@ -59,7 +59,7 @@ class PilotDataset(Dataset):
                 edge_index = self._get_adjacency_info(raw_data)
 
             # Get labels info
-            labels = self._get_labels(raw_data)
+            labels = self._get_labels_distance(raw_data)
 
             # Create the Data object
             data = Data(
@@ -73,7 +73,7 @@ class PilotDataset(Dataset):
 
     # This will return a matrix with shape=[num_nodes, num_node_features]
     #   nodes: the geographic locations
-    #   features: the ERA5 variables + the distance from the cyclone for each cell
+    #   features: the ERA5 variables for each cell
     def _get_node_features(self, data):
 
         all_nodes_feats =[]
@@ -88,7 +88,7 @@ class PilotDataset(Dataset):
                 ERA5_vars.append(data.data_vars[key].values)   # TODO: talk with cmcc guys to understand if they treat this in some way 
 
         # Calculate for each cell the distance from the cyclone cell
-        mat_dist = self._get_dist_matrix(data)
+        #mat_dist = self._get_dist_matrix(data)
 
         # The order of nodes is implicit in how I perform these lon/lat loops
         for lon in range(data.lon.size):
@@ -167,8 +167,7 @@ class PilotDataset(Dataset):
         return torch.tensor(coo_links, dtype=torch.long)
 
     # Here we're gonna put the ibtracs data to classify the nodes
-    # TODO: I'm casting to int() and long, but I may need something else
-    def _get_labels(self, data):
+    def _get_labels_binary(self, data):
         labels = []
         tmp_ibtracs = data.Ymsk.values
         
@@ -178,7 +177,18 @@ class PilotDataset(Dataset):
         
         print("        Shape of labels:", np.shape(labels))
         return torch.tensor(labels, dtype=torch.float)
+    
+    # Test setup for regression on distances instead of classification on presence
+    def _get_labels_distance(self, data):
+        labels = []
+        mat_dist = self._get_dist_matrix(data)
 
+        for lon in range(data.lon.size):
+            for lat in range(data.lat.size):
+                labels.append(mat_dist[lat, lon])
+
+        print("        Shape of labels:", np.shape(labels))
+        return torch.tensor(labels, dtype=torch.float)
 
     # Download the raw data into raw/, or the folder specified in self.raw_dir
     def download(self):
