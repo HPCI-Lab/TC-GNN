@@ -9,4 +9,5 @@ def stop_time(START_TIME, MESSAGE=None):
     STOP_TIME = time.time()
     if not MESSAGE:
         MESSAGE = "default message"
-    print(f"  ---  {MESSAGE}  ---  {(STOP_TIME - START_TIME)} seconds.")
+    comp_time = STOP_TIME - START_TIME
+    print(f"  ---  {MESSAGE}  ---  {comp_time:.3f} seconds.")
