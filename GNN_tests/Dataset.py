@@ -29,7 +29,7 @@ class PilotDataset(Dataset):
     # If these files exist, process() will be skipped.
     # After process(), the returned list should have the only processed data file name
     def processed_file_names(self):
-        return os.listdir(self.root + '/processed')
+        return os.listdir(self.root + '/processed' + '/' + str(self.label_type))
         #['ERA5_test_ibtracs_int_0.pt']
     
     # Process raw data and save it into the processed/
@@ -40,10 +40,10 @@ class PilotDataset(Dataset):
         edge_index = None
 
         for raw_path in self.raw_paths:
-
+            
             year = raw_path.split('_')[2]
             cyclone = raw_path.split('_')[4].split('.')[0]
-            print(f'    Year {year}, Patch number {cyclone}...')
+            #print(f'    Year {year}, Patch number {cyclone}...')
             raw_data = xr.open_dataset(raw_path)
 
             # Get node features
@@ -57,13 +57,13 @@ class PilotDataset(Dataset):
                 edge_index = self._get_adjacency_info(raw_data)
 
             # Get labels info
-            labels =  []
             if self.label_type == "binary":
                 labels = self._get_labels_binary(raw_data)
             elif self.label_type == "distance":
                 labels = self._get_labels_distance(raw_data)
             else:
                 print("LABEL TYPE NOT RECOGNIZED!! Available labels: [distance/binary]")
+                exit(0)
 
             # Create the Data object
             data = Data(
@@ -72,7 +72,11 @@ class PilotDataset(Dataset):
                 y=labels,                           # labels for classification
             )
 
-            torch.save(data, os.path.join(self.processed_dir, f'year_{year}_cyclone_{cyclone}.pt'))
+            torch.save(data, os.path.join(self.processed_dir, str(self.label_type), f'year_{year}_cyclone_{cyclone}.pt'))
+
+        print("    Shape of node feature matrix:", np.shape(node_feats))
+        print("    Shape of graph connectivity in COO format:", np.shape(edge_index))
+        print("    Shape of labels:", np.shape(labels))
 
     # This will return a matrix with shape=[num_nodes, num_node_features]
     #   nodes: the geographic locations
@@ -104,7 +108,6 @@ class PilotDataset(Dataset):
                 #node_feats.append(mat_dist[lat, lon])
                 all_nodes_feats.append(node_feats)
 
-        print("        Shape of node feature matrix:", np.shape(all_nodes_feats))
         all_nodes_feats = np.asarray(all_nodes_feats)
         return torch.tensor(all_nodes_feats, dtype=torch.float)
     
@@ -166,7 +169,6 @@ class PilotDataset(Dataset):
                 
                 this_node += 1
 
-        print("        Shape of graph connectivity in COO format:", np.shape(coo_links))
         return torch.tensor(coo_links, dtype=torch.long)
 
     # Here we're gonna put the ibtracs data to classify the nodes
@@ -178,7 +180,6 @@ class PilotDataset(Dataset):
             for lat in range(data.lat.size):
                 labels.append(int(tmp_ibtracs[lat, lon]))
         
-        print("        Shape of labels:", np.shape(labels))
         return torch.tensor(labels, dtype=torch.float)
     
     # Test setup for regression on distances instead of classification on presence
@@ -190,7 +191,6 @@ class PilotDataset(Dataset):
             for lat in range(data.lat.size):
                 labels.append(mat_dist[lat, lon])
 
-        print("        Shape of labels:", np.shape(labels))
         return torch.tensor(labels, dtype=torch.float)
 
     # Download the raw data into raw/, or the folder specified in self.raw_dir
@@ -203,5 +203,5 @@ class PilotDataset(Dataset):
     
     # Implements the logic to load a single graph
     def get(self, year, cyclone):
-        data = torch.load(os.path.join(self.processed_dir, f'year_{year}_cyclone_{cyclone}.pt'))
+        data = torch.load(os.path.join(self.processed_dir, str(self.label_type), f'year_{year}_cyclone_{cyclone}.pt'))
         return data

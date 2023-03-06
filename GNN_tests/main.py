@@ -54,7 +54,7 @@ dataset.get(1983, 1)
 # if this means that you may potentially train over the same patch/batch over and over
 #dataset = dataset.shuffle()
 
-dataset_size = dataset.len() -2     # remove /processed/pre_filter.pt and /processed/pre_transform.pt
+dataset_size = dataset.len()    # TODO if the data was in /processed, remember that you'd have pre_filter.pt and pre_transform.pt too
 train_set = []
 test_set = []
 valid_set = []
