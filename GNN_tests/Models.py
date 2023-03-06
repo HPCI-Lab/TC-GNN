@@ -2,7 +2,8 @@ import torch
 import torch.nn.functional as F
 from torch_geometric.nn import GCNConv
 from torch_geometric.nn import GraphUNet
-from torch_geometric.utils import dropout_edge
+#from torch_geometric.utils import dropout_edge     # for torch-geometric 2.2.0
+from torch_geometric.utils import dropout_adj       # for torch-geometric 2.0.3
 
 # A simple 2-layer GCN model using GCNConv
 class GCNet(torch.nn.Module):
@@ -33,7 +34,7 @@ class GUNet(torch.nn.Module):
         # torch.sigmoid
         # torch.nn.Sigmoid
         # F.log_softmax(x, dim=1)     # original version
-        self.act_final = torch.sigmoid#torch.nn.Linear(1, 1)
+        self.act_final = torch.nn.Linear(1, 1)
 
 
         pool_ratios = [2000 / data.num_nodes, 0.5]
@@ -43,7 +44,7 @@ class GUNet(torch.nn.Module):
         self._log_network()
         
     def forward(self, data):
-        edge_index, _ = dropout_edge(data.edge_index, p=0.2,
+        edge_index, _ = dropout_adj(data.edge_index, p=0.2,
                                      force_undirected=True,
                                      training=self.training)
         
