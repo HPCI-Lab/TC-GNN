@@ -13,14 +13,15 @@ from utils import time_func
 class PilotDataset(Dataset):
 
     # root: Where the dataset should be stored and divided into processed/ and raw/
-    def __init__(self, root, transform=None, pre_transform=None, pre_filter=None):
+    def __init__(self, root, label_type, transform=None, pre_transform=None, pre_filter=None):
+        self.label_type = label_type
         super().__init__(root, transform, pre_transform, pre_filter)
 
     @property
     # If you directly return the names of the files, the '.' will be in /data/bsc/raw
     # If you return os.listdir, the '.' will be where "Dataset.py" is
     def raw_file_names(self):
-        return os.listdir('./data/bsc/raw')
+        return os.listdir(self.root + '/raw')
         #['./ERA5_test.nc']
 
     @property
@@ -29,7 +30,7 @@ class PilotDataset(Dataset):
     # If these files exist, process() will be skipped.
     # After process(), the returned list should have the only processed data file name
     def processed_file_names(self):
-        return os.listdir('./data/bsc/processed')
+        return os.listdir(self.root + '/processed')
         #['ERA5_test_ibtracs_int_0.pt']
     
     # Process raw data and save it into the processed/
@@ -39,12 +40,10 @@ class PilotDataset(Dataset):
         # Conserving adjacency info to avoid computing it every time
         edge_index = None
 
-        cyclone = 1
         for raw_path in self.raw_paths:
 
             year = raw_path.split('_')[1]
-            # TODO: potrei prendere il cyclone id dal path anzichè il counter del loop
-            # per salvare il numero del ciclone
+            cyclone = raw_path.split('_')[3].split('.')[0]
             print(f'    Year {year}, Patch number {cyclone}...')
             raw_data = xr.open_dataset(raw_path)
 
@@ -59,7 +58,13 @@ class PilotDataset(Dataset):
                 edge_index = self._get_adjacency_info(raw_data)
 
             # Get labels info
-            labels = self._get_labels_distance(raw_data)
+            labels =  []
+            if self.label_type == "binary":
+                labels = self._get_labels_binary(raw_data)
+            elif self.label_type == "distance":
+                labels = self._get_labels_distance(raw_data)
+            else:
+                print("LABEL TYPE NOT RECOGNIZED!! Available labels: [distance/binary]")
 
             # Create the Data object
             data = Data(
@@ -69,7 +74,6 @@ class PilotDataset(Dataset):
             )
 
             torch.save(data, os.path.join(self.processed_dir, f'year_{year}_cyclone_{cyclone}.pt'))
-            cyclone += 1
 
     # This will return a matrix with shape=[num_nodes, num_node_features]
     #   nodes: the geographic locations
