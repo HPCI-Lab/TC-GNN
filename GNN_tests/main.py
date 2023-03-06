@@ -17,6 +17,15 @@ print(f"Cuda available: {torch.cuda.is_available()}")
 print(f"Torch geometric version: {torch_geometric.__version__}")
 
 ### GLOBAL SETTINGS ###
+ON_CLUSTER = False
+if ON_CLUSTER:
+    DATA_PATH = '../../data/gnn_records'
+else:
+    DATA_PATH = './data/bsc_records'
+_train_set = [1980, 1982]
+_valid_set = [1983]
+_test_set = [1981]
+LABEL_TYPE = "distance"    # binary(classification) or distance(regression)
 _model_name = "GUNet"
 _num_features = None
 _hidden_channels = 32   # 16 for GCNet, 32 for GUNet(from the examples)
@@ -29,7 +38,7 @@ _valid_batch_size = 5
 # %%
 # Dataset creation
 timestamp = time_func.start_time()
-dataset = Dataset.PilotDataset(root='./data/bsc')#'./data/cmcc_structured')
+dataset = Dataset.PilotDataset(root=DATA_PATH, label_type=LABEL_TYPE)
 time_func.stop_time(timestamp, "Dataset creation")
 
 # Note that cyclone files start from 1, not form 0
@@ -135,8 +144,8 @@ from dice import dice_score
 #loss_op = dice_score
 
 # Regression losses
-loss_op = torch.nn.L1Loss()
-#loss_op = torch.nn.MSELoss()
+#loss_op = torch.nn.L1Loss()
+loss_op = torch.nn.MSELoss()
 
 print(f"Loss created!\n\tIn use: {loss_op}")
 optimizer = torch.optim.Adam(model.parameters(), lr=0.005)
@@ -157,6 +166,7 @@ def train():
         #print(pred)
         #print(batch.y)
         loss = loss_op(pred, batch.y)   # both [8000] in size
+        #loss /= 10  # TODO be careful with this
         
         # If you try the Soft Dice Score, use this(even if the loss stays constant)
         #loss.requires_grad = True
@@ -191,6 +201,7 @@ def evaluate(loader):
         outputs = outputs.squeeze()
 
         loss = loss_op(outputs, batch.y)
+        # loss /= 10    # TODO be careful with this
         total_loss += loss.item() * batch.num_graphs
 
     #print(outputs.sum())
@@ -227,7 +238,11 @@ plt.figure(figsize=(8, 4))
 plt.plot(train_loss, label='Train loss')
 plt.plot(valid_loss, label='Validation loss')
 plt.legend()
-plt.show()
+if ON_CLUSTER:
+    plt.savefig('./images/train_valid_losses.png')
+    plt.close()
+else:
+    plt.show()
 
 # %% 
 # Visualization of test batch truth against predictions
@@ -268,7 +283,12 @@ def visual():
             fig.colorbar(ax_target, orientation='vertical')#location='top', )
             
         plt.subplots_adjust(hspace=0.3, wspace=0.3)
-        plt.show()    
+        if ON_CLUSTER:
+            plt.savefig('./images/testbatch5.png')
+            plt.close(fig)
+        else:
+            plt.show()
+        
         #print(test_set[0].y, '\t', np.shape(test_set[0].y))
         print("Pred:\t", outputs[:], '\n\t', np.shape(outputs[:]))
         print("Target:\t", batch.y[:], '\n\t', np.shape(batch.y[:]))
