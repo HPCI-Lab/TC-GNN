@@ -1,4 +1,3 @@
-import math
 import matplotlib.pyplot as plt
 import numpy as np
 import os
@@ -125,7 +124,7 @@ class PilotDataset(Dataset):
         # Assign the Euclidean distances
         for lon in range(data.lon.size):
             for lat in range(data.lat.size):
-                mat_dist[lat, lon] = math.dist([lat, lon], [row, col])
+                mat_dist[lat, lon] = np.sqrt((lat-row)**2 + (lon-col)**2)
 
         return mat_dist
 
