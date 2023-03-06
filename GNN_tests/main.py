@@ -19,9 +19,9 @@ print(f"Torch geometric version: {torch_geometric.__version__}")
 ### GLOBAL SETTINGS ###
 ON_CLUSTER = False
 if ON_CLUSTER:
-    DATA_PATH = '../../data/gnn_records'
+    DATA_PATH = '../../data/gnn_records/'
 else:
-    DATA_PATH = './data/bsc_records'
+    DATA_PATH = './data/bsc_records/'
 _train_set = [1980, 1982]
 _valid_set = [1983]
 _test_set = [1981]
@@ -38,12 +38,12 @@ _valid_batch_size = 5
 # %%
 # Dataset creation
 timestamp = time_func.start_time()
-dataset = Dataset.PilotDataset(root=DATA_PATH, label_type=LABEL_TYPE)
+dataset = Dataset.PilotDataset(root=DATA_PATH + LABEL_TYPE, label_type=LABEL_TYPE)
 time_func.stop_time(timestamp, "Dataset creation")
 
 # Note that cyclone files start from 1, not form 0
-dataset.get(year=1983, cyclone=1).is_directed()
-dataset.get(1983, 1)
+#dataset.get(year=1983, cyclone=1).is_directed()
+#dataset.get(1983, 1)
 
 # %%
 # Data loader set up + Feature normalization

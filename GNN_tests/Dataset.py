@@ -29,7 +29,7 @@ class PilotDataset(Dataset):
     # If these files exist, process() will be skipped.
     # After process(), the returned list should have the only processed data file name
     def processed_file_names(self):
-        return os.listdir(self.root + '/processed' + '/' + str(self.label_type))
+        return os.listdir(self.root + '/processed')
         #['ERA5_test_ibtracs_int_0.pt']
     
     # Process raw data and save it into the processed/
@@ -40,7 +40,7 @@ class PilotDataset(Dataset):
         edge_index = None
 
         for raw_path in self.raw_paths:
-            
+
             year = raw_path.split('_')[2]
             cyclone = raw_path.split('_')[4].split('.')[0]
             #print(f'    Year {year}, Patch number {cyclone}...')
@@ -72,7 +72,8 @@ class PilotDataset(Dataset):
                 y=labels,                           # labels for classification
             )
 
-            torch.save(data, os.path.join(self.processed_dir, str(self.label_type), f'year_{year}_cyclone_{cyclone}.pt'))
+            #print(os.path.join(self.processed_dir, f'year_{year}_cyclone_{cyclone}.pt'))
+            torch.save(data, os.path.join(self.processed_dir, f'year_{year}_cyclone_{cyclone}.pt'))
 
         print("    Shape of node feature matrix:", np.shape(node_feats))
         print("    Shape of graph connectivity in COO format:", np.shape(edge_index))
@@ -203,5 +204,5 @@ class PilotDataset(Dataset):
     
     # Implements the logic to load a single graph
     def get(self, year, cyclone):
-        data = torch.load(os.path.join(self.processed_dir, str(self.label_type), f'year_{year}_cyclone_{cyclone}.pt'))
+        data = torch.load(os.path.join(self.processed_dir, f'year_{year}_cyclone_{cyclone}.pt'))
         return data
