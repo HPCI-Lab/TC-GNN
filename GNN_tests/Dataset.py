@@ -41,8 +41,8 @@ class PilotDataset(Dataset):
 
         for raw_path in self.raw_paths:
 
-            year = raw_path.split('_')[1]
-            cyclone = raw_path.split('_')[3].split('.')[0]
+            year = raw_path.split('_')[2]
+            cyclone = raw_path.split('_')[4].split('.')[0]
             print(f'    Year {year}, Patch number {cyclone}...')
             raw_data = xr.open_dataset(raw_path)
 
