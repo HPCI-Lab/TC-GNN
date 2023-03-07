@@ -2,6 +2,7 @@
 # Imports + Global settings
 import matplotlib.pyplot as plt
 import numpy as np
+import os
 from sklearn.metrics import f1_score
 from sklearn.preprocessing import MinMaxScaler
 import torch
@@ -17,23 +18,25 @@ print(f"Cuda available: {torch.cuda.is_available()}")
 print(f"Torch geometric version: {torch_geometric.__version__}")
 
 ### GLOBAL SETTINGS ###
+DEVICE = torch.device('cpu')#'cuda' if torch.cuda.is_available() else 'cpu')
 ON_CLUSTER = False
 if ON_CLUSTER:
     DATA_PATH = '../../data/gnn_records/'
 else:
     DATA_PATH = './data/bsc_records/'
-_train_set = [1980, 1982]
-_valid_set = [1983]
-_test_set = [1981]
+_TRAIN_SET = [1980]#, 1982]
+_VALID_SET = [1983]
+_TEST_SET = [1981]
 LABEL_TYPE = "distance"    # binary(classification) or distance(regression)
 _model_name = "GUNet"
 _num_features = None
 _hidden_channels = 32   # 16 for GCNet, 32 for GUNet(from the examples)
 _num_classes = 1
-_train_size = 100
-_train_batch_size = 10   # TODO see how the results change if you change this
+_train_batch_size = 32   # TODO see how the results change if you change this
 _test_batch_size = 5
 _valid_batch_size = 5
+
+TIMESTAMP = time_func.start_time()
 
 # %%
 # Dataset creation
@@ -42,8 +45,34 @@ dataset = Dataset.PilotDataset(root=DATA_PATH + LABEL_TYPE, label_type=LABEL_TYP
 time_func.stop_time(timestamp, "Dataset creation")
 
 # Note that cyclone files start from 1, not form 0
+print("Year 1983, cyclone 1: ", dataset.get(1983, 1))
 #dataset.get(year=1983, cyclone=1).is_directed()
-#dataset.get(1983, 1)
+
+# %%
+# Extract number of cyclones per year
+graph_names = os.listdir(dataset.processed_dir)
+if 'pre_filter.pt' in graph_names: graph_names.remove('pre_filter.pt')
+if 'pre_transform.pt' in graph_names: graph_names.remove('pre_transform.pt')
+
+years = []
+graph_dict =  {}
+
+for gn in graph_names:
+	y = gn.split('_')[1]
+	years.append(y)
+
+years = np.unique(years)
+
+for y in years:
+	graph_dict[y] = 0
+
+for gn in graph_names:
+	y = gn.split('_')[1]
+	c = gn.split('_')[3].split('.')[0]
+	if graph_dict[y] < int(c):
+		graph_dict[y] = int(c)
+
+print("Dictionary of graph years and number of cyclones:\n", graph_dict)
 
 # %%
 # Data loader set up + Feature normalization
@@ -54,7 +83,6 @@ time_func.stop_time(timestamp, "Dataset creation")
 # if this means that you may potentially train over the same patch/batch over and over
 #dataset = dataset.shuffle()
 
-dataset_size = dataset.len()    # TODO if the data was in /processed, remember that you'd have pre_filter.pt and pre_transform.pt too
 train_set = []
 test_set = []
 valid_set = []
@@ -63,56 +91,57 @@ valid_set = []
 scaler = MinMaxScaler()     # default range: [0, 1]
 
 # Fit the scaler to the training set, one piece at a time
-for c in range(_train_size):#dataset_size):  # just 20 patches to see if it works
-    patch = dataset.get(1983, c+1)
-    scaler.partial_fit(patch.x)
-    train_set.append(patch)
+for year in _TRAIN_SET:
+    for cyclone in range(graph_dict[str(year)]):
+        patch = dataset.get(year, cyclone+1)        # Cyclones files start from 1
+        scaler.partial_fit(patch.x)
+        train_set.append(patch)
 
-# Normalize training, test and valaidation sets with the obtained values
-for i in range(len(train_set)):
-    patch = train_set[i]
-    patch.x = torch.tensor(scaler.transform(patch.x), dtype=torch.float)
-    train_set[i] = patch
+# Normalize training, test and validation sets with the obtained values
+for year in _TRAIN_SET:
+    for cyclone in range(graph_dict[str(year)]):
+        patch = train_set[cyclone]
+        patch.x = torch.tensor(scaler.transform(patch.x), dtype=torch.float)
+        train_set[cyclone] = patch
 
-for c in range(100, 105):
-    patch = dataset.get(1983, c+1)
-    patch.x = torch.tensor(scaler.transform(patch.x), dtype=torch.float)
-    test_set.append(patch)
+for year in _VALID_SET:
+    for cyclone in range(graph_dict[str(year)]):
+        patch = dataset.get(year, cyclone+1)
+        patch.x = torch.tensor(scaler.transform(patch.x), dtype=torch.float)
+        valid_set.append(patch)
 
-for c in range(105, 110):
-    patch = dataset.get(1983, c+1)
-    patch.x = torch.tensor(scaler.transform(patch.x), dtype=torch.float)
-    valid_set.append(patch)
+for year in _TEST_SET:
+    for cyclone in range(graph_dict[str(year)]):
+        patch = dataset.get(year, cyclone+1)
+        patch.x = torch.tensor(scaler.transform(patch.x), dtype=torch.float)
+        test_set.append(patch)
 
 train_loader = DataLoader(train_set, batch_size=_train_batch_size, shuffle=True)#, batch_sampler=None)
 test_loader = DataLoader(test_set, batch_size=_test_batch_size, shuffle=False)
 valid_loader = DataLoader(valid_set, batch_size=_valid_batch_size, shuffle=False)
+
 ''' # Cannot print in this way if I use _train_batch_size=None
 # Print the batches and create an element with all its features
 print("\tTrain batches:")
 for batch in train_loader:
     print(batch)
-
-print("\tTest batches:")
-for batch in test_loader:
-    print(batch)
-
-print("\tValidation batches:")
-for batch in valid_loader:
-    print(batch)
 '''
-device = torch.device('cpu')#'cuda' if torch.cuda.is_available() else 'cpu')
+
+print("Train set size: ", len(train_set))
+print("Valid set size: ", len(valid_set))
+print("Test set size: ", len(test_set))
 
 _num_features = train_loader.dataset[0].num_features
 
 #%%
 # Tests with channels
 patch = train_loader.dataset[0]
-print(patch.x.is_contiguous(memory_format=torch.channels_last))
-print(patch.x.is_contiguous(memory_format=torch.contiguous_format))
+print("Channels last: ", patch.x.is_contiguous(memory_format=torch.channels_last))
+print("Contiguous(channels first): ", patch.x.is_contiguous(memory_format=torch.contiguous_format))
 tmp = patch.x.unsqueeze(0)
 print(tmp.size())
 batch = next(iter(train_loader))
+print(batch)
 
 # %%
 # Model instantiation and summary
@@ -125,12 +154,12 @@ model = Model(
     in_channels = _num_features,
     hidden_channels = _hidden_channels,
     out_channels = _num_classes,
-    data = train_loader.dataset[0]
-).to(device)
+    data = train_loader.dataset[0]      # Just to initialize the model
+).to(DEVICE)
 
-print("\nSummary of NN:")
-print(f"\tdummy input: {train_loader.dataset[0]}")
-print(summary.summary(model, train_loader.dataset[0]))
+#print("\nSummary of NN:")
+#print(f"\tdummy input: {train_loader.dataset[0]}")
+#print(summary.summary(model, train_loader.dataset[0]))
 
 # %%
 # Loss + Optimizer + train()
@@ -140,7 +169,7 @@ print(summary.summary(model, train_loader.dataset[0]))
 #loss_op = torch.nn.CrossEntropyLoss()  # works best with _train_size=20, lower in general
 #loss_op = torch.nn.BCEWithLogitsLoss()
 #loss_op = torch.nn.functional.nll_loss
-from dice import dice_score
+#from dice import dice_score
 #loss_op = dice_score
 
 # Regression losses
@@ -155,7 +184,7 @@ def train():
     total_loss = 0
 
     for batch in train_loader:
-        batch = batch.to(device)
+        batch = batch.to(DEVICE)
 
         # zero the parameter gradients
         optimizer.zero_grad()
@@ -183,7 +212,7 @@ def train():
     return total_loss
 
 loss = train()
-print(loss)
+print("Train loss, debug: ", loss)
 
 # %%
 # Evaluate()
@@ -195,7 +224,7 @@ def evaluate(loader):
     total_loss = 0
 
     for batch in loader:
-        batch = batch.to(device)
+        batch = batch.to(DEVICE)
 
         outputs = model(batch)  # shape: [8000, 1]
         outputs = outputs.squeeze()
@@ -211,7 +240,8 @@ def evaluate(loader):
     return total_loss
 
 loss = evaluate(test_loader)
-print(loss)
+print("Test loss, debug: ", loss)
+time_func.stop_time(TIMESTAMP, "Cluster computation finished!")
 
 # %%
 # Epoch training, validation and testing
@@ -251,7 +281,7 @@ def visual():
     model.eval()
 
     for batch in test_loader:   # assuming there's only 1 batch
-        batch = batch.to(device)
+        batch = batch.to(DEVICE)
 
         outputs = model(batch)  # shape: [8000, 1]
         outputs = outputs.squeeze()
