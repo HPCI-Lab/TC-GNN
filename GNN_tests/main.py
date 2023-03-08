@@ -18,23 +18,24 @@ print(f"Cuda available: {torch.cuda.is_available()}")
 print(f"Torch geometric version: {torch_geometric.__version__}")
 
 ### GLOBAL SETTINGS ###
-DEVICE = torch.device('cpu')#'cuda' if torch.cuda.is_available() else 'cpu')
+DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 ON_CLUSTER = False
 if ON_CLUSTER:
     DATA_PATH = '../../data/gnn_records/'
 else:
     DATA_PATH = './data/bsc_records/'
-_TRAIN_SET = [1980]#, 1982]
+
+_TRAIN_SET = [1980, 1982]
 _VALID_SET = [1983]
 _TEST_SET = [1981]
-LABEL_TYPE = "distance"    # binary(classification) or distance(regression)
+LABEL_TYPE = "binary"    # binary(classification) or distance(regression)
 _model_name = "GUNet"
 _num_features = None
 _hidden_channels = 32   # 16 for GCNet, 32 for GUNet(from the examples)
 _num_classes = 1
-_train_batch_size = 32   # TODO see how the results change if you change this
-_test_batch_size = 5
-_valid_batch_size = 5
+_train_batch_size = 512   # TODO see how the results change if you change this
+_test_batch_size = 128
+_valid_batch_size = 128
 
 TIMESTAMP = time_func.start_time()
 
@@ -105,13 +106,13 @@ for year in _TRAIN_SET:
         train_set[cyclone] = patch
 
 for year in _VALID_SET:
-    for cyclone in range(graph_dict[str(year)]):
+    for cyclone in range(500):#graph_dict[str(year)]):
         patch = dataset.get(year, cyclone+1)
         patch.x = torch.tensor(scaler.transform(patch.x), dtype=torch.float)
         valid_set.append(patch)
 
 for year in _TEST_SET:
-    for cyclone in range(graph_dict[str(year)]):
+    for cyclone in range(500):#graph_dict[str(year)]):
         patch = dataset.get(year, cyclone+1)
         patch.x = torch.tensor(scaler.transform(patch.x), dtype=torch.float)
         test_set.append(patch)
@@ -165,7 +166,7 @@ model = Model(
 # Loss + Optimizer + train()
 
 # Classification losses
-#loss_op = torch.nn.BCELoss()            # works best with _train_size=100, higher in general
+loss_op = torch.nn.BCELoss()            # works best with _train_size=100, higher in general
 #loss_op = torch.nn.CrossEntropyLoss()  # works best with _train_size=20, lower in general
 #loss_op = torch.nn.BCEWithLogitsLoss()
 #loss_op = torch.nn.functional.nll_loss
@@ -174,7 +175,7 @@ model = Model(
 
 # Regression losses
 #loss_op = torch.nn.L1Loss()
-loss_op = torch.nn.MSELoss()
+#loss_op = torch.nn.MSELoss()
 
 print(f"Loss created!\n\tIn use: {loss_op}")
 optimizer = torch.optim.Adam(model.parameters(), lr=0.005)
@@ -188,7 +189,7 @@ def train():
 
         # zero the parameter gradients
         optimizer.zero_grad()
-
+        
         # forward + loss
         pred = model(batch)
         pred = pred.squeeze()
@@ -241,7 +242,8 @@ def evaluate(loader):
 
 loss = evaluate(test_loader)
 print("Test loss, debug: ", loss)
-time_func.stop_time(TIMESTAMP, "Cluster computation finished!")
+
+time_func.stop_time(TIMESTAMP, "Computation before training finished!")
 
 # %%
 # Epoch training, validation and testing
@@ -267,7 +269,7 @@ print(f'Metric for test: {metric:.4f}')
 plt.figure(figsize=(8, 4))
 plt.plot(train_loss, label='Train loss')
 plt.plot(valid_loss, label='Validation loss')
-plt.legend()
+plt.legend(title="Loss type: " + str(loss_op))
 if ON_CLUSTER:
     plt.savefig('./images/train_valid_losses.png')
     plt.close()
@@ -280,48 +282,50 @@ else:
 def visual():
     model.eval()
 
-    for batch in test_loader:   # assuming there's only 1 batch
-        batch = batch.to(DEVICE)
+    batch = next(iter(test_loader))
+    batch = batch.to(DEVICE)
 
-        outputs = model(batch)  # shape: [8000, 1]
-        outputs = outputs.squeeze()
-        
-        # Preparing the plot
-        fig, axs = plt.subplots(ncols=2, nrows=5, figsize=(6, 12))
-        fig.suptitle('Test batch(5)', fontsize=12, y=0.95)
-        row = 0
+    outputs = model(batch)  # shape: [1600*_test_batch_size, 1]
+    outputs = outputs.squeeze()
+    
+    # Preparing the plot
+    fig, axs = plt.subplots(ncols=4, nrows=2, figsize=(16, 6))
+    #fig.suptitle('Predictions / Ground Truths', fontsize=14, y=0.95)
+    col = 0
 
-        # Iterate over the patch in the batch
-        for patch_id in range(len(test_loader.dataset)):
+    # Take 4 patches from the batch
+    shift = 14
+    for patch_id in range(0+shift, 4+shift):#len(test_loader.dataset)):
 
-            # Allocate the empty prediction and target matrices
-            mat_pred = np.zeros(shape=(40, 40))
-            mat_target = np.zeros(shape=(40, 40))
+        # Allocate the empty prediction and target matrices
+        mat_pred = np.zeros(shape=(40, 40))
+        mat_target = np.zeros(shape=(40, 40))
 
-            # Put the data inside
-            index = 0+1600*patch_id
-            for lon in range(40):
-                for lat in range(40):
-                    mat_pred[lat, lon] = outputs[index].item()
-                    mat_target[lat, lon] = batch.y[index].item()
-                    index += 1
+        # Put the data inside
+        index = 0+1600*patch_id
+        for lon in range(40):
+            for lat in range(40):
+                mat_pred[lat, lon] = outputs[index].item()
+                mat_target[lat, lon] = batch.y[index].item()
+                index += 1
 
-            ax_pred = axs[row, 0].matshow(mat_pred)
-            ax_target = axs[row, 1].matshow(mat_target)
-            row += 1
-            fig.colorbar(ax_pred, orientation='vertical')#, location='top', )
-            fig.colorbar(ax_target, orientation='vertical')#location='top', )
-            
-        plt.subplots_adjust(hspace=0.3, wspace=0.3)
-        if ON_CLUSTER:
-            plt.savefig('./images/testbatch5.png')
-            plt.close(fig)
-        else:
-            plt.show()
-        
-        #print(test_set[0].y, '\t', np.shape(test_set[0].y))
-        print("Pred:\t", outputs[:], '\n\t', np.shape(outputs[:]))
-        print("Target:\t", batch.y[:], '\n\t', np.shape(batch.y[:]))
+        ax_pred = axs[0, col].matshow(mat_pred)
+        ax_target = axs[1, col].matshow(mat_target)
+        col += 1
+        fig.colorbar(ax_pred, orientation='vertical', format='%.0e')#location='top'
+        fig.colorbar(ax_target, orientation='vertical')#location='top'
+
+    #plt.subplots_adjust(hspace=0.3, wspace=0.3)    # 5x2 setup
+    plt.subplots_adjust(hspace=0.1, wspace=0.3)    # 2x5 setup
+    if ON_CLUSTER:
+        plt.savefig('./images/testbatch4.png')
+        plt.close(fig)
+    else:
+        plt.show()
+    
+    #print(test_set[0].y, '\t', np.shape(test_set[0].y))
+    print("Pred:\t", outputs[:], '\n\t', np.shape(outputs[:]))
+    print("Target:\t", batch.y[:], '\n\t', np.shape(batch.y[:]))
 
 visual()
 
