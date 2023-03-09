@@ -61,8 +61,10 @@ class PilotDataset(Dataset):
                 labels = self._get_labels_binary(raw_data)
             elif self.label_type == "distance":
                 labels = self._get_labels_distance(raw_data)
+            elif self.label_type == "distanceInverse":
+                labels = self._get_labels_distance(raw_data, dist_inverse_01=True)
             else:
-                print("LABEL TYPE NOT RECOGNIZED!! Available labels: [distance/binary]")
+                print("LABEL TYPE NOT RECOGNIZED!! Available labels: [distance/binary/distanceInverse]")
                 exit(0)
 
             # Create the Data object
@@ -113,7 +115,7 @@ class PilotDataset(Dataset):
         return torch.tensor(all_nodes_feats, dtype=torch.float)
     
     # Return the cyclone distance matrix
-    def _get_dist_matrix(self, data):
+    def _get_dist_matrix(self, data, dist_inverse_01=None):
         tmp_ibtracs = data.Ymsk.values
         mat_dist = np.zeros(shape=(40, 40))
 
@@ -122,13 +124,18 @@ class PilotDataset(Dataset):
         for lon in range(data.lon.size):
             for lat in range(data.lat.size):
                 if tmp_ibtracs[lat, lon]==1:
-                    #print("Found: ", lat, lon)
                     row, col = lat, lon
 
         # Assign the Euclidean distances
         for lon in range(data.lon.size):
             for lat in range(data.lat.size):
                 mat_dist[lat, lon] = np.sqrt((lat-row)**2 + (lon-col)**2)
+
+        if dist_inverse_01:
+            max_dist = np.sqrt(2)*40
+            for lon in range(data.lon.size):
+                for lat in range(data.lat.size):
+                    mat_dist[lat, lon] = (max_dist - mat_dist[lat, lon]) / max_dist
 
         return mat_dist
 
@@ -184,9 +191,9 @@ class PilotDataset(Dataset):
         return torch.tensor(labels, dtype=torch.float)
     
     # Test setup for regression on distances instead of classification on presence
-    def _get_labels_distance(self, data):
+    def _get_labels_distance(self, data, dist_inverse_01=None):
         labels = []
-        mat_dist = self._get_dist_matrix(data)
+        mat_dist = self._get_dist_matrix(data, dist_inverse_01)
 
         for lon in range(data.lon.size):
             for lat in range(data.lat.size):
