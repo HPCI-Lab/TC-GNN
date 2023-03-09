@@ -25,17 +25,18 @@ if ON_CLUSTER:
 else:
     DATA_PATH = './data/bsc_records/'
 
-_TRAIN_SET = [1980, 1982]
-_VALID_SET = [1983]
-_TEST_SET = [1981]
-LABEL_TYPE = "binary"    # binary(classification) or distance(regression)
+TRAIN_SET = [1982, 1983]
+VALID_SET = [1980]
+TEST_SET = [1981]
+LABEL_TYPE = "distanceInverse"    # binary(classification), distance(regression) distanceInverse(classification)
 _model_name = "GUNet"
 _num_features = None
 _hidden_channels = 32   # 16 for GCNet, 32 for GUNet(from the examples)
 _num_classes = 1
 _train_batch_size = 512   # TODO see how the results change if you change this
-_test_batch_size = 128
-_valid_batch_size = 128
+_test_batch_size = 512
+_valid_batch_size = 512
+GRAPH_DICT = {}
 
 TIMESTAMP = time_func.start_time()
 
@@ -45,7 +46,7 @@ timestamp = time_func.start_time()
 dataset = Dataset.PilotDataset(root=DATA_PATH + LABEL_TYPE, label_type=LABEL_TYPE)
 time_func.stop_time(timestamp, "Dataset creation")
 
-# Note that cyclone files start from 1, not form 0
+# Note that cyclone files start from 1, not from 0
 print("Year 1983, cyclone 1: ", dataset.get(1983, 1))
 #dataset.get(year=1983, cyclone=1).is_directed()
 
@@ -56,7 +57,6 @@ if 'pre_filter.pt' in graph_names: graph_names.remove('pre_filter.pt')
 if 'pre_transform.pt' in graph_names: graph_names.remove('pre_transform.pt')
 
 years = []
-graph_dict =  {}
 
 for gn in graph_names:
 	y = gn.split('_')[1]
@@ -65,15 +65,26 @@ for gn in graph_names:
 years = np.unique(years)
 
 for y in years:
-	graph_dict[y] = 0
+	GRAPH_DICT[y] = 0
 
 for gn in graph_names:
 	y = gn.split('_')[1]
 	c = gn.split('_')[3].split('.')[0]
-	if graph_dict[y] < int(c):
-		graph_dict[y] = int(c)
+	if GRAPH_DICT[y] < int(c):
+		GRAPH_DICT[y] = int(c)
 
-print("Dictionary of graph years and number of cyclones:\n", graph_dict)
+print("Dictionary of graph years and number of cyclones:\n", GRAPH_DICT)
+
+# %%
+# [Temporary] calculation 80-20-20 set for train-valid-test
+# TODO: it assigns a fraction of the average per each year. It SHOULD be safe for now, but look up for array oveflows
+train_average, valid_total, test_total = 0, 0, 0
+for year in TRAIN_SET:
+    train_average += GRAPH_DICT[str(year)]
+train_average /= len(TRAIN_SET)
+
+valid_total = int(train_average*20/80)
+test_total = int(train_average*20/80)
 
 # %%
 # Data loader set up + Feature normalization
@@ -84,42 +95,41 @@ print("Dictionary of graph years and number of cyclones:\n", graph_dict)
 # if this means that you may potentially train over the same patch/batch over and over
 #dataset = dataset.shuffle()
 
-train_set = []
-test_set = []
-valid_set = []
-
 # Feature normalization. Fit the training and tranform training, test and validation
 scaler = MinMaxScaler()     # default range: [0, 1]
 
 # Fit the scaler to the training set, one piece at a time
-for year in _TRAIN_SET:
-    for cyclone in range(graph_dict[str(year)]):
+for year in TRAIN_SET:
+    for cyclone in range(GRAPH_DICT[str(year)]):
         patch = dataset.get(year, cyclone+1)        # Cyclones files start from 1
         scaler.partial_fit(patch.x)
-        train_set.append(patch)
+
+train_set = []
+valid_set = []
+test_set = []
 
 # Normalize training, test and validation sets with the obtained values
-for year in _TRAIN_SET:
-    for cyclone in range(graph_dict[str(year)]):
-        patch = train_set[cyclone]
+for year in TRAIN_SET:
+    for cyclone in range(GRAPH_DICT[str(year)]):
+        patch = dataset.get(year, cyclone+1)
         patch.x = torch.tensor(scaler.transform(patch.x), dtype=torch.float)
-        train_set[cyclone] = patch
+        train_set.append(patch)
 
-for year in _VALID_SET:
-    for cyclone in range(500):#graph_dict[str(year)]):
+for year in VALID_SET:
+    for cyclone in range(valid_total):#GRAPH_DICT[str(year)]):
         patch = dataset.get(year, cyclone+1)
         patch.x = torch.tensor(scaler.transform(patch.x), dtype=torch.float)
         valid_set.append(patch)
 
-for year in _TEST_SET:
-    for cyclone in range(500):#graph_dict[str(year)]):
+for year in TEST_SET:
+    for cyclone in range(test_total):#GRAPH_DICT[str(year)]):
         patch = dataset.get(year, cyclone+1)
         patch.x = torch.tensor(scaler.transform(patch.x), dtype=torch.float)
         test_set.append(patch)
 
 train_loader = DataLoader(train_set, batch_size=_train_batch_size, shuffle=True)#, batch_sampler=None)
-test_loader = DataLoader(test_set, batch_size=_test_batch_size, shuffle=False)
 valid_loader = DataLoader(valid_set, batch_size=_valid_batch_size, shuffle=False)
+test_loader = DataLoader(test_set, batch_size=_test_batch_size, shuffle=False)
 
 ''' # Cannot print in this way if I use _train_batch_size=None
 # Print the batches and create an element with all its features
@@ -193,10 +203,8 @@ def train():
         # forward + loss
         pred = model(batch)
         pred = pred.squeeze()
-        #print(pred)
-        #print(batch.y)
-        loss = loss_op(pred, batch.y)   # both [8000] in size
-        #loss /= 10  # TODO be careful with this
+
+        loss = loss_op(pred, batch.y)
         
         # If you try the Soft Dice Score, use this(even if the loss stays constant)
         #loss.requires_grad = True
@@ -212,8 +220,8 @@ def train():
     total_loss = total_loss / len(train_loader.dataset)
     return total_loss
 
-loss = train()
-print("Train loss, debug: ", loss)
+#loss = train()
+#print("Train loss, debug: ", loss)
 
 # %%
 # Evaluate()
@@ -227,21 +235,24 @@ def evaluate(loader):
     for batch in loader:
         batch = batch.to(DEVICE)
 
-        outputs = model(batch)  # shape: [8000, 1]
-        outputs = outputs.squeeze()
+        pred = model(batch)
+        pred = pred.squeeze()
 
-        loss = loss_op(outputs, batch.y)
-        # loss /= 10    # TODO be careful with this
+        loss = loss_op(pred, batch.y)
+
         total_loss += loss.item() * batch.num_graphs
-
-    #print(outputs.sum())
-    #print(pred.sum())
     
     total_loss = total_loss / len(loader.dataset)
     return total_loss
 
+'''
+loss = evaluate(train_loader)
+print("Train loss, debug: ", loss)
+loss = evaluate(valid_loader)
+print("Valid loss, debug: ", loss)
 loss = evaluate(test_loader)
 print("Test loss, debug: ", loss)
+'''
 
 time_func.stop_time(TIMESTAMP, "Computation before training finished!")
 
@@ -285,8 +296,8 @@ def visual():
     batch = next(iter(test_loader))
     batch = batch.to(DEVICE)
 
-    outputs = model(batch)  # shape: [1600*_test_batch_size, 1]
-    outputs = outputs.squeeze()
+    pred = model(batch)  # shape: [1600*_test_batch_size, 1]
+    pred = pred.squeeze()
     
     # Preparing the plot
     fig, axs = plt.subplots(ncols=4, nrows=2, figsize=(16, 6))
@@ -294,7 +305,7 @@ def visual():
     col = 0
 
     # Take 4 patches from the batch
-    shift = 14
+    shift = 19
     for patch_id in range(0+shift, 4+shift):#len(test_loader.dataset)):
 
         # Allocate the empty prediction and target matrices
@@ -305,14 +316,14 @@ def visual():
         index = 0+1600*patch_id
         for lon in range(40):
             for lat in range(40):
-                mat_pred[lat, lon] = outputs[index].item()
+                mat_pred[lat, lon] = pred[index].item()
                 mat_target[lat, lon] = batch.y[index].item()
                 index += 1
 
         ax_pred = axs[0, col].matshow(mat_pred)
         ax_target = axs[1, col].matshow(mat_target)
         col += 1
-        fig.colorbar(ax_pred, orientation='vertical', format='%.0e')#location='top'
+        fig.colorbar(ax_pred, orientation='vertical')#, format='%.0e')#location='top'
         fig.colorbar(ax_target, orientation='vertical')#location='top'
 
     #plt.subplots_adjust(hspace=0.3, wspace=0.3)    # 5x2 setup
@@ -324,7 +335,7 @@ def visual():
         plt.show()
     
     #print(test_set[0].y, '\t', np.shape(test_set[0].y))
-    print("Pred:\t", outputs[:], '\n\t', np.shape(outputs[:]))
+    print("Pred:\t", pred[:], '\n\t', np.shape(pred[:]))
     print("Target:\t", batch.y[:], '\n\t', np.shape(batch.y[:]))
 
 visual()
