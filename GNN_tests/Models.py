@@ -26,7 +26,7 @@ class GCNet(torch.nn.Module):
         
 
 class GUNet(torch.nn.Module):
-    def __init__(self, in_channels, hidden_channels, out_channels, data):
+    def __init__(self, in_channels, hidden_channels, out_channels, num_nodes, final_act):
         super().__init__()
 
         self.act_middle = torch.nn.functional.relu
@@ -34,10 +34,11 @@ class GUNet(torch.nn.Module):
         # torch.sigmoid
         # torch.nn.Sigmoid
         # F.log_softmax(x, dim=1)     # original version
-        self.act_final = torch.sigmoid#torch.nn.Linear(1, 1)
+        # torch.nn.Linear(1, 1)
+        self.act_final = final_act
 
 
-        pool_ratios = [2000 / data.num_nodes, 0.5]
+        pool_ratios = [2000 / num_nodes, 0.5]
         self.unet = GraphUNet(in_channels, hidden_channels, out_channels,
                               depth=3, pool_ratios=pool_ratios, act=self.act_middle)
         
