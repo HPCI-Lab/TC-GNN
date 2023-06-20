@@ -40,6 +40,7 @@ _test_batch_size = 512
 _valid_batch_size = 512
 FINAL_ACTIVATION = torch.sigmoid#torch.nn.Linear(1, 1)#
 GRAPH_DICT = {}
+PLOT_VERTICAL = True
 
 TIMESTAMP = time_func.start_time()
 
@@ -244,7 +245,7 @@ def evaluate(loader):
 
         loss = loss_op(pred, batch.y)
 
-        total_loss += loss.item() * batch.num_graphs
+        total_loss += loss.item() * batch.num_graphs    # TODO compare this with the AI at scale code
     
     total_loss = total_loss / len(loader.dataset)
     return total_loss
@@ -276,7 +277,7 @@ valid_loss = []
 for epoch in range(100):
     t_loss = train()
     v_loss = evaluate(valid_loader)
-    print(f'Epoch: {epoch+1:03d}, Train loss: {t_loss:.4f}, Val loss: {v_loss:.4f}')
+    print(f'Epoch: {epoch+1:03d}, Train running loss: {t_loss:.4f}, Val running loss: {v_loss:.4f}')
     train_loss.append(t_loss)
     valid_loss.append(v_loss)
 
@@ -303,6 +304,29 @@ else:
 # Visualization of test batch truth against predictions
 @torch.no_grad()
 def visual():
+
+    # default variables are for horizontal plot
+    ncols = 5
+    nrows = 2
+    figsize = (16, 6)
+    col_target = 0
+    row_target = 0
+    col_pred = 0
+    row_pred = 1
+    hspace = 0.1
+    wspace = 0.5
+
+    if PLOT_VERTICAL:
+        ncols = 2
+        nrows = 5
+        figsize = (6, 14)
+        col_target = 0
+        row_target = 0
+        col_pred = 1
+        row_pred = 0
+        hspace = 0.05
+        wspace = 0.4
+
     model.eval()
 
     batch = next(iter(test_loader))
@@ -312,8 +336,7 @@ def visual():
     pred = pred.squeeze()
     
     # Preparing the plot
-    fig, axs = plt.subplots(ncols=2, nrows=5, figsize=(6, 14))
-    row = 0
+    fig, axs = plt.subplots(ncols=ncols, nrows=nrows, figsize=figsize)
 
     # Take 4 patches from the batch
     shift = 20
@@ -331,14 +354,20 @@ def visual():
                 mat_target[lat, lon] = batch.y[index].item()
                 index += 1
 
-        ax_target = axs[row, 0].matshow(mat_target)
-        ax_pred = axs[row, 1].matshow(mat_pred)
-        row += 1
+        ax_target = axs[row_target, col_target].matshow(mat_target)
+        ax_pred = axs[row_pred, col_pred].matshow(mat_pred)
         fig.colorbar(ax_pred, fraction=0.046, pad=0.04)#, format='%.0e')
         fig.colorbar(ax_target, fraction=0.046, pad=0.04)
+        
+        if PLOT_VERTICAL:
+            row_target += 1
+            row_pred += 1
+        else:
+            col_target += 1
+            col_pred += 1
     
-    plt.subplots_adjust(hspace=0.05, wspace=0.4)    # 5x2 setup
-    #plt.subplots_adjust(hspace=0.1, wspace=0.3)    # 2x5 setup
+    plt.subplots_adjust(hspace=hspace, wspace=wspace)
+
     if ON_CLUSTER:
         plt.savefig('./images/testbatch.png')
         plt.close(fig)
