@@ -1,2 +1,2 @@
 # unstructuredEarth
-Personal notes about unstructured data and generalities of my HPC internship.
+PyTorch pipeline for the detection of tropical cyclones based on ERA5 and IBTrACS data.
