@@ -10,6 +10,8 @@ The network can then be used to detect tropical cyclones using a GNN approach in
 For this process, you need Python already available on the system.
 
 ```
-$ chmod +x setup.sh
-$ ./setup.sh
+$ python3 -m venv env_HPC
+$ source ./env_HPC/bin/activate
+$ pip install --upgrade pip
+$ pip install -r requirements.txt
 ```
