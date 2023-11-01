@@ -1,0 +1,9 @@
+matplotlib
+netcdf4
+scikit-learn
+tabulate
+torch
+torch-scatter
+torch-sparse
+torch-geometric
+xarray
