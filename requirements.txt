@@ -1,9 +1,11 @@
 ipykernel
 lightning
 matplotlib
+munch
 netcdf4
 scikit-learn
 tabulate
+toml
 torch
 torch-geometric
 xarray
