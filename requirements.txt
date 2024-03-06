@@ -1,3 +1,4 @@
+dask
 ipykernel
 lightning
 matplotlib
