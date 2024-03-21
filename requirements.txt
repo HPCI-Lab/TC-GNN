@@ -2,8 +2,11 @@ dask
 ipykernel
 lightning
 matplotlib
+mlflow
 munch
 netcdf4
+prov
+pydot
 scikit-learn
 tabulate
 toml
