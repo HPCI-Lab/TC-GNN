@@ -1,4 +1,6 @@
+codecarbon
 dask
+fvcore
 gputil
 ipykernel
 lightning
